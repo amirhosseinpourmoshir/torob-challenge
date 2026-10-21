@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#faf9f6" />
+    <meta name="description" content="ترب همراه؛ یک همراه هوشمند برای کشف فروشگاه‌های اطراف و خرید حضوری." />
+    <link rel="icon" type="image/png" href="/images/torob-guide.png" />
+    <script>
+      (() => {
+        let theme = 'light';
+        try { theme = localStorage.getItem('torob-theme') === 'dark' ? 'dark' : 'light'; } catch {}
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.documentElement.style.backgroundColor = theme === 'dark' ? '#181b20' : '#faf9f6';
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#181b20' : '#faf9f6';
+      })();
+    </script>
+    <title>ترب همراه | کشف خرید نزدیک تو</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
