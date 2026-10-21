@@ -67,6 +67,8 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+GEOCODER_BASE_URL = os.getenv('GEOCODER_BASE_URL', 'https://photon.komoot.io')
+GEOCODER_USER_AGENT = os.getenv('GEOCODER_USER_AGENT', 'TorobHamrah/1.0 (+https://github.com/amirhosseinpourmoshir/torob-challenge)')
 # Configuration only; provider integration will be added with the chatbot.
 AI = {
     "API_KEY": os.getenv("AI_API_KEY", ""),

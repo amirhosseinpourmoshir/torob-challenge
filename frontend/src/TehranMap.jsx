@@ -56,11 +56,14 @@ function MapMarker({ map, coordinates, children, className }) {
   return createPortal(children, element)
 }
 
-const TehranMap = forwardRef(function TehranMap({ shops, selected, route, onSelect, theme }, ref) {
+const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, onSelect, theme, pickMode = false, onPick, initialCoordinates, origin }, ref) {
   const container = useRef(null)
   const instance = useRef(null)
   const themeRef = useRef(theme)
   themeRef.current = theme
+  const pickRef = useRef(onPick)
+  pickRef.current = onPick
+  const initialPoint = useRef(initialCoordinates)
   const [map, setMap] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
@@ -70,6 +73,8 @@ const TehranMap = forwardRef(function TehranMap({ shops, selected, route, onSele
     zoomIn: () => instance.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 }),
     zoomOut: () => instance.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 }),
     reset: () => instance.current?.flyTo({ ...HOME, duration: reducedMotion() ? 0 : 900 }),
+    goTo: point => { instance.current?.flyTo({ center: point, zoom: 16, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
+    pickCenter: () => { const point = instance.current?.getCenter(); if (point && pickMode) pickRef.current?.([point.lng, point.lat]) },
     togglePitch: () => { const m = instance.current; if (m) m.easeTo({ pitch: m.getPitch() > 10 ? 0 : 50, bearing: m.getPitch() > 10 ? 0 : -12, duration: reducedMotion() ? 0 : 650 }) },
   }), [])
   useEffect(() => {
@@ -94,7 +99,7 @@ const TehranMap = forwardRef(function TehranMap({ shops, selected, route, onSele
         }
         // Required source credits are rendered below in Persian with original links.
         for (const source of Object.values(style.sources)) if ('attribution' in source) source.attribution = ''
-        m = new Map({ container: container.current, style, ...HOME, maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران' } })
+        m = new Map({ container: container.current, style, ...HOME, ...(pickMode ? { center: initialPoint.current || HOME.center, zoom: 15.5, pitch: 0, bearing: 0 } : {}), maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران' } })
         instance.current = m
         setMap(m)
         const updateScale = () => {
@@ -118,6 +123,13 @@ const TehranMap = forwardRef(function TehranMap({ shops, selected, route, onSele
           if (!m.getStyle() || event.error?.message?.includes('WebGL')) setError('نمایش نقشه امکان‌پذیر نیست؛ اتصال اینترنت و پشتیبانی گرافیکی مرورگر را بررسی کن.')
         })
         m.on('moveend', updateScale)
+        if (pickMode) {
+          let dragged = false
+          m.on('movestart', e => { if (e.originalEvent) dragged = true })
+          m.on('dragstart', () => { dragged = true })
+          m.on('moveend', () => { if (dragged) { dragged = false; const point = m.getCenter(); pickRef.current?.([point.lng, point.lat]) } })
+          m.on('click', e => { const point = [e.lngLat.lng, e.lngLat.lat]; m.easeTo({ center: point, duration: reducedMotion() ? 0 : 250 }); pickRef.current?.(point) })
+        }
         observer = new ResizeObserver(() => { m.resize(); updateScale() })
         observer.observe(container.current)
       } catch (failure) {
@@ -136,12 +148,13 @@ const TehranMap = forwardRef(function TehranMap({ shops, selected, route, onSele
   useEffect(() => {
     if (!map || !loaded) return
     const shop = shops.find(s => s.id === selected)
-    map.getSource('guide-line')?.setData(route && shop ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [START, shop.coordinates] } } : emptyRoute)
-  }, [route, selected, loaded, map, shops])
+    map.getSource('guide-line')?.setData(route && shop ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [origin || START, shop.coordinates] } } : emptyRoute)
+  }, [route, selected, loaded, map, shops, origin])
+  useEffect(() => { if (map && loaded && origin && !pickMode) map.flyTo({ center: origin, zoom: 14.8, duration: reducedMotion() ? 0 : 700 }) }, [origin, map, loaded, pickMode])
   return <>
     <div ref={container} className="geographic-map" role="region" aria-label="نقشه تعاملی تهران"/>
     {map && shops.map(shop => <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`geo-shop-marker marker-${shop.color} ${selected === shop.id ? 'active' : ''}`}><button onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`}><span className="marker-label">{shop.name}<span>نمونه</span></span><span className="marker-body"><shop.icon size={20}/></span></button></MapMarker>)}
-    {map && <MapMarker map={map} coordinates={START} className="geo-start-marker"><span>نقطهٔ شروع نمونه</span><i/></MapMarker>}
+    {map && !pickMode && <MapMarker map={map} coordinates={origin || START} className="geo-start-marker"><span>{origin ? 'آدرس انتخابی تو' : 'نقطهٔ شروع نمونه'}</span><i/></MapMarker>}
     <div className="persian-map-scale"><span/>{scale}</div>
     <div className="persian-map-attribution"><span>© </span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">مشارکت‌کنندگان اوپن‌استریت‌مپ</a><span> · </span><a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">اوپن‌مپ‌تایلز</a></div>
     {!loaded && !error && <div className="map-loading" role="status"><span className="map-spinner"/><span>در حال دریافت نقشهٔ تهران…</span></div>}

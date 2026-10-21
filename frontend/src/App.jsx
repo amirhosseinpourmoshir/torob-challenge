@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, ArrowUpLeft, AudioLines, Bookmark, Check, ChevronDown, ChevronLeft, Compass, CornerDownLeft, Gift, Hand, Headphones, Heart, HelpCircle, Layers3, LocateFixed, MapPin, Maximize2, Mic, Minus, Moon, MessageCircle, Navigation, Plus, RotateCcw, Search, ShoppingBag, SlidersHorizontal, Smartphone, Sparkles, Star, Store, Sun, WandSparkles, Volume2, X } from 'lucide-react'
 import TehranMap from './TehranMap.jsx'
+import AddressBook from './AddressBook.jsx'
 
 const shops = [
   { id: 1, name: 'دیجی‌لند', type: 'موبایل و دیجیتال', distance: '۳۵۰ متر', time: '۵ دقیقه', price: 'از ۱۲٬۴۹۰٬۰۰۰', category: 'digital', coordinates: [51.4079, 35.7107], color: 'red', description: 'موبایل، هدفون و لوازم جانبی', icon: Smartphone },
@@ -14,6 +15,8 @@ const suggestions = [{ text: 'هدفون تا ۳ میلیون', icon: Headphones
 
 function Mascot({ className = '' }) { return <img className={className} src="/images/torob-guide.png" alt="تُربی، راهنمای سه‌بعدی خرید" /> }
 function App() {
+  const [address, setAddress] = useState(null)
+  const origin = useMemo(() => address ? [address.longitude, address.latitude] : null, [address?.longitude, address?.latitude])
   const [category, setCategory] = useState('all')
   const [selected, setSelected] = useState(null)
   const [query, setQuery] = useState('')
@@ -62,7 +65,7 @@ function App() {
     <header className="header header-v3">
       <a className="brand" href="#" aria-label="صفحه اصلی ترب همراه"><span className="brand-mark"><Mascot /></span><span>ترب<span className="brand-light">همراه</span><small>همراهِ کشف و خرید</small></span></a>
       <nav className="main-nav" aria-label="ناوبری اصلی"><button className={!savedOnly ? 'nav-active' : ''} onClick={() => setSavedOnly(false)}><Compass size={23}/>کشف تهران</button><button className={savedOnly ? 'nav-active' : ''} onClick={() => setSavedOnly(!savedOnly)}><Bookmark size={23}/>ذخیره‌شده‌ها{saved.length > 0 && <b>{saved.length}</b>}</button></nav>
-      <div className="header-actions"><button className="location-button" aria-label="محدودهٔ فعالیت تهران" onClick={() => setModal('location')}><MapPin size={22}/><span>تهران، ولیعصر</span><ChevronDown size={14}/></button><span className="header-divider"/><button className="theme-toggle icon-button" aria-label={theme === 'dark' ? 'فعال کردن تم روشن' : 'فعال کردن تم تاریک'} aria-pressed={theme === 'dark'} title={theme === 'dark' ? 'تم روشن' : 'تم تاریک'} onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}>{theme === 'dark' ? <Sun size={24}/> : <Moon size={24}/>}</button><button className="icon-button help-button" aria-label="راهنما" onClick={() => setModal('help')}><HelpCircle size={21}/></button></div>
+      <div className="header-actions"><AddressBook theme={theme} onActiveChange={setAddress}/><span className="header-divider"/><button className="theme-toggle icon-button" aria-label={theme === 'dark' ? 'فعال کردن تم روشن' : 'فعال کردن تم تاریک'} aria-pressed={theme === 'dark'} title={theme === 'dark' ? 'تم روشن' : 'تم تاریک'} onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}>{theme === 'dark' ? <Sun size={24}/> : <Moon size={24}/>}</button><button className="icon-button help-button" aria-label="راهنما" onClick={() => setModal('help')}><HelpCircle size={21}/></button></div>
     </header>
     <main>
       <section className="intro hero-v2"><div className="hero-copy"><div className="eyebrow"><span/> تهران رو یه جور دیگه کشف کن <span className="hero-beta">نسخهٔ آزمایشی</span></div><h1>یه گفت‌وگوی ساده،<br/>یه <span>خریدِ دوست‌داشتنی<svg viewBox="0 0 230 12" aria-hidden="true"><path d="M3 9Q110 -4 227 6"/></svg></span></h1><p>از «چی بخرم؟» تا «کجا پیداش کنم؟»<br/>تُربی کنارته تا انتخاب بعدیت، همین نزدیکی باشه.</p><div className="hero-actions"><button className="hero-primary" onClick={startChat}><MessageCircle size={19}/>بیا پیداش کنیم<ArrowLeft size={18}/></button><button className="hero-secondary" onClick={() => { resetMap(); document.querySelector('.explore-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}><Compass size={18}/>یه گشت توی تهران</button></div></div><div className="hero-visual" aria-hidden="true"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><div className="hero-floating-pin"><MapPin size={25}/></div><div className="hero-floating-bag"><ShoppingBag size={26}/></div><div className="hero-discovery"><span><Navigation size={19}/></span><div><strong>انتخاب خوب، نزدیک تو</strong><small>یک قدم نزدیک‌تر به چیزی که می‌خوای</small></div><span className="discovery-dot"/></div></div></section>
@@ -81,7 +84,7 @@ function App() {
           <div className="map-topbar"><div className="map-title"><span className="map-icon"><MapPin size={19}/></span><div><h2>{savedOnly ? 'فروشگاه‌های ذخیره‌شده' : 'اینجا، تهران'} <span>ولیعصر</span></h2><p>یک شهر، کلی انتخاب نزدیک</p></div></div><form className="map-search" onSubmit={e => { e.preventDefault(); setSearch(query) }}><Search size={17}/><input placeholder="جست‌وجوی فروشگاه یا دسته‌بندی" value={query} onChange={e => { setQuery(e.target.value); setSearch(e.target.value) }} aria-label="جستجوی فروشگاه"/>{query && <button type="button" aria-label="پاک کردن جستجو" onClick={() => { setQuery(''); setSearch('') }}><X size={14}/></button>}<button type="button" aria-label="فیلترها" onClick={() => setModal('filters')}><SlidersHorizontal size={18}/></button></form></div>
           <div className="category-bar">{categories.map(c => <button key={c.id} className={category === c.id ? 'selected' : ''} onClick={() => { setCategory(c.id); setRoute(false) }}><c.icon size={15}/>{c.name}</button>)}<button className="country-shortcut" onClick={resetMap}><MapPin size={13}/>محدودهٔ تهران</button></div>
           <div className="map-viewport geographic-viewport">
-            <TehranMap ref={mapRef} shops={visible} selected={selected} route={route} theme={theme} onSelect={id => { setSelected(id); setRoute(false) }}/>
+            <TehranMap ref={mapRef} shops={visible} selected={selected} route={route} theme={theme} origin={origin} onSelect={id => { setSelected(id); setRoute(false) }}/>
             <div className="map-caption"><span className="pulse-dot"/> تهران، حوالی ولیعصر<span className="caption-divider"/><span>فروشگاه‌های نزدیک تو</span></div>
             <div className="map-controls"><button aria-label="بزرگنمایی" onClick={() => mapRef.current?.zoomIn()}><Plus size={19}/></button><button aria-label="کوچک‌نمایی" onClick={() => mapRef.current?.zoomOut()}><Minus size={19}/></button><span/><button aria-label="بازگشت به ولیعصر" onClick={resetMap}><LocateFixed size={19}/></button><button aria-label="تغییر زاویه سه‌بعدی" onClick={() => mapRef.current?.togglePitch()}><Compass size={19}/></button><button aria-label={expanded ? 'بستن نمای بزرگ' : 'بزرگ کردن نقشه'} onClick={() => setExpanded(!expanded)}>{expanded ? <X size={18}/> : <Maximize2 size={18}/>}</button></div>
             <button className="map-style" onClick={() => mapRef.current?.togglePitch()}><Layers3 size={16}/><span>تغییر زاویهٔ دید</span></button>
