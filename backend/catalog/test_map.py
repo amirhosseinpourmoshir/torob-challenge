@@ -75,3 +75,16 @@ class ShopMapTests(TestCase):
         data = self.client.get('/api/shops/search/', {'q': 'موبایل', 'ids': 'shop_089'}).json()
         self.assertEqual(data['shops'][0]['id'], 'shop_089')
         self.assertGreater(data['shops'][0]['distance_m'], 2000)
+
+    def test_search_cache_reuses_results_and_respects_origin_and_filters(self):
+        from unittest.mock import patch
+        origin = self.origin()
+        first = self.client.get('/api/shops/search/', {'q': 'موبایل'}).json()
+        with patch('catalog.map_views.lean', side_effect=AssertionError('cached query was repeated')):
+            self.assertEqual(self.client.get('/api/shops/search/', {'q': 'موبايل'}).json(), first)
+        origin.latitude = 35.7178
+        origin.longitude = 51.4178
+        origin.save()
+        changed = self.client.get('/api/shops/search/', {'q': 'موبایل'}).json()
+        self.assertEqual(changed['shops'][0]['id'], 'shop_089')
+        self.assertEqual(self.client.get('/api/shops/search/', {'q': 'موبایل', 'category': 'fashion'}).json()['shops'], [])

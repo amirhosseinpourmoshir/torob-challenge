@@ -1,6 +1,8 @@
 """Bounded viewport queries; no endpoint exports the entire shop catalogue."""
 import math
 import re
+import hashlib
+import json
 from collections import Counter
 from functools import wraps
 
@@ -145,7 +147,17 @@ def search(request):
     if not origin:
         return JsonResponse({'error': 'برای یافتن نزدیک‌ترین فروشگاه، ابتدا آدرس انتخابی را ثبت کن.'}, status=400)
     qs = base(request)
+    # Cache complete, bounded results per active origin and filters. Other
+    # sessions/addresses cannot reuse a distance calculated for this origin.
+    signature = json.dumps([query, str(origin.pk), origin.latitude, origin.longitude,
+                            request.GET.get('category', 'all'), request.GET.get('ids')], ensure_ascii=False)
+    key = 'shop-live-search-v1:' + hashlib.sha256(signature.encode()).hexdigest()
+    cached = cache.get(key)
+    if cached is not None:
+        return JsonResponse(cached)
     for word in query.split()[:8]:
         qs = qs.filter(search_text__contains=word)
     qs = lean(qs.annotate(distance_m=distance(origin.latitude, origin.longitude))).order_by('distance_m', 'id')
-    return JsonResponse({'shops': [serialize(s, origin) for s in qs[:8]], 'origin_id': str(origin.pk), 'distance_kind': 'straight_line'})
+    result = {'shops': [serialize(s, origin) for s in qs[:8]], 'origin_id': str(origin.pk), 'distance_kind': 'straight_line'}
+    cache.set(key, result, 60)
+    return JsonResponse(result)
