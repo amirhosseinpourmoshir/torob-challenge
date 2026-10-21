@@ -31,8 +31,8 @@
 .live-shop-marker{z-index:3;pointer-events:none}
 .live-shop-marker.is-active{z-index:5}
 .live-shop-marker>button{pointer-events:auto;position:relative;display:flex;align-items:center;flex-direction:column;padding:0;gap:5px;animation:shop-reveal .35s ease-out}
-.live-marker-icon{display:grid;place-items:center;position:relative;width:40px;height:42px;border-radius:14px 14px 14px 6px;background:linear-gradient(145deg,#fffdf4,#f2e7d8);color:var(--shop-color);border:1.5px solid color-mix(in srgb,var(--shop-color) 55%,#fff4df);box-shadow:0 4px 10px #142f3440,inset 0 1px 0 #fff;transition:box-shadow .2s,scale .2s,translate .2s}
-.live-marker-icon .shop-illustration{width:34px;height:34px;filter:drop-shadow(0 1px 1px #47312418)}
+.live-marker-icon{display:grid;place-items:center;position:relative;width:40px;height:42px;border-radius:11px 11px 11px 3px;background:#fff;color:var(--shop-color);border:1.5px solid color-mix(in srgb,var(--shop-color) 45%,#e7edf1);box-shadow:0 3px 9px #142f342b;transition:box-shadow .2s,scale .2s,translate .2s}
+.live-marker-icon .shop-illustration{width:25px;height:25px}
 .live-shop-marker button:hover .live-marker-icon,.live-shop-marker.is-active .live-marker-icon{scale:1.15;box-shadow:0 0 0 5px color-mix(in srgb,var(--shop-color) 25%,transparent),0 6px 15px #0004}
 .live-shop-marker.is-active .live-marker-icon:after{content:'';position:absolute;inset:-7px;border:1px solid var(--shop-color);border-radius:18px;animation:shop-ripple 2s ease-out infinite;pointer-events:none}
 .live-marker-name{position:absolute;top:47px;max-width:125px;width:max-content;padding:4px 8px;border-radius:8px;background:var(--shop-panel);border:1px solid var(--shop-border);color:var(--shop-ink);font-size:10px;font-weight:600;box-shadow:0 3px 9px #0002;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
@@ -64,12 +64,12 @@
 @media(max-width:700px){.shop-search-wrap{max-width:none;min-width:0;flex-basis:100%}.shop-explorer .map-topbar{gap:13px}.shop-explorer .map-title h2{font-size:16px}.shop-explorer .shop-map-viewport{height:560px;min-height:560px}.shop-detail{right:9px;left:9px;bottom:42px;padding:12px;border-radius:17px}.shop-explorer .map-controls{top:65px;left:9px;right:auto}.shop-distance-row small{width:100%;padding-inline-start:24px}.shop-detail-head{gap:7px}.shop-detail-head h3{font-size:12px}.shop-detail-icon{width:35px;height:39px}.shop-detail-head>button{padding:5px}.shop-density-hint{bottom:42px;right:9px}.shop-search-results{max-height:300px}.live-marker-name{max-width:110px}.shop-map-status{right:9px;left:9px;top:10px;max-width:calc(100% - 18px)}.shop-explorer.expanded-map .shop-map-viewport{height:calc(100dvh - 240px);min-height:380px}}
 @media(prefers-reduced-motion:reduce){.shop-explorer *{animation:none!important;transition:none!important}}
 
-/* Filled category illustrations stay readable in maps, search and cards. */
-.shop-explorer .shop-categories .shop-illustration{width:24px;height:24px}
-.shop-explorer .shop-categories>button{padding-block:6px}
-.shop-result-icon .shop-illustration{width:30px;height:30px}
-.shop-detail-icon .shop-illustration{width:36px;height:36px}
-.shop-result-icon,.shop-detail-icon{background:linear-gradient(145deg,#fffaf0,#f0e5d5);border-color:color-mix(in srgb,var(--shop-color) 40%,#e7d9c6)}
-[data-theme=dark] .live-marker-icon{background:linear-gradient(145deg,#fff4df,#e8d8bc);border-color:color-mix(in srgb,var(--shop-color) 70%,#ffe9bf);box-shadow:0 4px 12px #0005,inset 0 1px 0 #fff8}
-[data-theme=dark] .shop-result-icon,[data-theme=dark] .shop-detail-icon{background:linear-gradient(145deg,#f1e3cd,#dfccb0)}
-@media(max-width:700px){.shop-detail-icon .shop-illustration{width:30px;height:30px}}
+/* Geometric duotone glyphs: flat surfaces, restrained color, no illustration effects. */
+.shop-explorer .shop-categories .shop-illustration{width:20px;height:20px}
+.shop-explorer .shop-categories>button{padding-block:8px}
+.shop-result-icon .shop-illustration{width:23px;height:23px}
+.shop-detail-icon .shop-illustration{width:28px;height:28px}
+.shop-result-icon,.shop-detail-icon{--glyph-surface:#f8fafb;background:#f8fafb;border-radius:10px;border-color:color-mix(in srgb,var(--shop-color) 25%,#d9e1e5)}
+[data-theme=dark] .live-marker-icon{--glyph-surface:#f4f7fa;background:#f4f7fa;border-color:color-mix(in srgb,var(--shop-color) 65%,#e9f0f5);box-shadow:0 3px 10px #0004}
+[data-theme=dark] .shop-result-icon,[data-theme=dark] .shop-detail-icon{--glyph-surface:#f0f4f7;background:#f0f4f7}
+@media(max-width:700px){.shop-detail-icon .shop-illustration{width:24px;height:24px}}
