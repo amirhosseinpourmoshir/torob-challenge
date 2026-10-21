@@ -164,7 +164,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   const markers = map && loaded && zoom >= 14 ? [...shops].sort((a, b) => Number(b.id === selected) - Number(a.id === selected)).filter(shop => {
     const point = map.project(shop.coordinates)
     if (point.x < 0 || point.y < 0 || point.x > map.getContainer().clientWidth || point.y > map.getContainer().clientHeight) return false
-    if (occupied.some(p => Math.abs(p.x - point.x) < 38 && Math.abs(p.y - point.y) < 40)) return false
+    if (occupied.some(p => Math.abs(p.x - point.x) < 45 && Math.abs(p.y - point.y) < 47)) return false
     occupied.push(point)
     return true
   }) : []

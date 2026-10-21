@@ -1,4 +1,4 @@
-import { Store, Smartphone, ShoppingBag, House, HeartPulse, Wrench, Bike, Coffee, BookOpen, Watch } from 'lucide-react'
+import { ShopStore as Store, ShopDigital as Smartphone, ShopFashion as ShoppingBag, ShopHome as House, ShopBeauty as HeartPulse, ShopAuto as Wrench, ShopSport as Bike, ShopFood as Coffee, ShopCulture as BookOpen, ShopJewelry as Watch } from './ShopIllustrations.jsx'
 
 export const shopTypes = {
   all: { name: 'همه', icon: Store },
