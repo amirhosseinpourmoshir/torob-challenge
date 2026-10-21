@@ -8,7 +8,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 setWorkerUrl(workerUrl)
 export const TEHRAN_BOUNDS = [[51.08, 35.53], [51.65, 35.84]]
 const HOME = { center: [51.412, 35.713], zoom: 14, pitch: 35, bearing: -12 }
-const START = [51.4102, 35.7141]
 const emptyRoute = { type: 'FeatureCollection', features: [] }
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -27,22 +26,22 @@ function applyPalette(map, theme) {
   for (const layer of map.getStyle().layers) {
     const id = layer.id
     if (id.startsWith('guide-line')) continue
-    if (layer.type === 'background') map.setPaintProperty(id, 'background-color', dark ? '#17242a' : '#f3f0e8')
+    if (layer.type === 'background') map.setPaintProperty(id, 'background-color', dark ? '#17242a' : '#e5e9e4')
     if (layer.type === 'fill') {
-      const color = /water/.test(id) ? (dark ? '#23434e' : '#cee2df') : /park|wood|landcover/.test(id) ? (dark ? '#243c34' : '#dfe8d8') : /building/.test(id) ? (dark ? '#35444a' : '#e4ddd0') : (dark ? '#1c2c32' : '#ede9de')
+      const color = /water/.test(id) ? (dark ? '#23434e' : '#85becb') : /park|wood|landcover/.test(id) ? (dark ? '#243c34' : '#b4cda4') : /building/.test(id) ? (dark ? '#35444a' : '#b5bdb7') : (dark ? '#1c2c32' : '#dce1d8')
       map.setPaintProperty(id, 'fill-color', color)
-      if (/building/.test(id)) map.setPaintProperty(id, 'fill-outline-color', dark ? '#445158' : '#d9cfc0')
+      if (/building/.test(id)) map.setPaintProperty(id, 'fill-outline-color', dark ? '#445158' : '#889b97')
     }
     if (layer.type === 'line') {
-      const color = /water/.test(id) ? (dark ? '#305864' : '#c3dcd8') : /casing|boundary|railway/.test(id) ? (dark ? '#3c4b50' : '#e2d7c4') : /major|motorway/.test(id) ? (dark ? '#737263' : '#fff4dc') : (dark ? '#48595e' : '#fffdf8')
+      const color = /water/.test(id) ? (dark ? '#305864' : '#7aaebd') : /casing|boundary|railway/.test(id) ? (dark ? '#3c4b50' : '#a8b6ab') : /major|motorway/.test(id) ? (dark ? '#737263' : '#f2c27d') : (dark ? '#48595e' : '#fffdf8')
       map.setPaintProperty(id, 'line-color', color)
     }
     if (layer.type === 'symbol' && layer.layout?.['text-field']) {
-      map.setPaintProperty(id, 'text-color', dark ? '#c4cbbc' : '#857c6b')
-      map.setPaintProperty(id, 'text-halo-color', dark ? '#1a292e' : '#f9f6ee')
+      map.setPaintProperty(id, 'text-color', dark ? '#c4cbbc' : '#2c444b')
+      map.setPaintProperty(id, 'text-halo-color', dark ? '#1a292e' : '#fcfcf5')
       map.setPaintProperty(id, 'text-halo-width', 1.5)
     }
-    if (layer.type === 'fill-extrusion') map.setPaintProperty(id, 'fill-extrusion-color', dark ? '#4b5a60' : '#e5d6bf')
+    if (layer.type === 'fill-extrusion') map.setPaintProperty(id, 'fill-extrusion-color', dark ? '#4b5a60' : '#a9b5ad')
   }
 }
 
@@ -148,13 +147,13 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   useEffect(() => {
     if (!map || !loaded) return
     const shop = shops.find(s => s.id === selected)
-    map.getSource('guide-line')?.setData(route && shop ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [origin || START, shop.coordinates] } } : emptyRoute)
+    map.getSource('guide-line')?.setData(route && shop && origin ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [origin, shop.coordinates] } } : emptyRoute)
   }, [route, selected, loaded, map, shops, origin])
   useEffect(() => { if (map && loaded && origin && !pickMode) map.flyTo({ center: origin, zoom: 14.8, duration: reducedMotion() ? 0 : 700 }) }, [origin, map, loaded, pickMode])
   return <>
     <div ref={container} className="geographic-map" role="region" aria-label="نقشه تعاملی تهران"/>
     {map && shops.map(shop => <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`geo-shop-marker marker-${shop.color} ${selected === shop.id ? 'active' : ''}`}><button onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`}><span className="marker-label">{shop.name}<span>نمونه</span></span><span className="marker-body"><shop.icon size={20}/></span></button></MapMarker>)}
-    {map && !pickMode && <MapMarker map={map} coordinates={origin || START} className="geo-start-marker"><span>{origin ? 'آدرس انتخابی تو' : 'نقطهٔ شروع نمونه'}</span><i/></MapMarker>}
+    {map && !pickMode && origin && <MapMarker map={map} coordinates={origin} className="geo-start-marker"><span>آدرس انتخابی تو</span><i/></MapMarker>}
     <div className="persian-map-scale"><span/>{scale}</div>
     <div className="persian-map-attribution"><span>© </span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">مشارکت‌کنندگان اوپن‌استریت‌مپ</a><span> · </span><a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">اوپن‌مپ‌تایلز</a></div>
     {!loaded && !error && <div className="map-loading" role="status"><span className="map-spinner"/><span>در حال دریافت نقشهٔ تهران…</span></div>}

@@ -49,6 +49,8 @@ class AddressTests(TestCase):
         self.assertEqual(response.json()['address']['plaque'], '۴۵')
         self.client.post(f"/api/addresses/{first['id']}/activate/", HTTP_X_CSRFTOKEN=self.token)
         self.assertTrue(SavedAddress.objects.get(pk=first['id']).is_active)
+        self.assertFalse(SavedAddress.objects.get(pk=second['id']).is_active)
+        self.assertEqual(SavedAddress.objects.filter(is_active=True).count(), 1)
         self.client.delete(f"/api/addresses/{first['id']}/", HTTP_X_CSRFTOKEN=self.token)
         self.assertTrue(SavedAddress.objects.get(pk=second['id']).is_active)
 
