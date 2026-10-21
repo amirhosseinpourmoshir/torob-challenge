@@ -69,10 +69,12 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 GEOCODER_BASE_URL = os.getenv('GEOCODER_BASE_URL', 'https://photon.komoot.io')
 GEOCODER_USER_AGENT = os.getenv('GEOCODER_USER_AGENT', 'TorobHamrah/1.0 (+https://github.com/amirhosseinpourmoshir/torob-challenge)')
-# Configuration only; provider integration will be added with the chatbot.
+# Backend-only provider defaults; panel overrides never rewrite the environment.
 AI = {
     "API_KEY": os.getenv("AI_API_KEY", ""),
     "BASE_URL": os.getenv("AI_BASE_URL", ""),
     "MODEL": os.getenv("AI_MODEL", ""),
     "TIMEOUT_SECONDS": int(os.getenv("AI_TIMEOUT_SECONDS", "60")),
 }
+PANEL_ADMIN_USERNAME = os.getenv('PANEL_ADMIN_USERNAME', '')
+PANEL_ADMIN_PASSWORD = os.getenv('PANEL_ADMIN_PASSWORD', '')

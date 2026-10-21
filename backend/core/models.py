@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from .panel_models import AIConnection, AIModelProfile
 
 
 class SavedAddress(models.Model):
