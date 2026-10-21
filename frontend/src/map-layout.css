@@ -1,0 +1,2 @@
+/* Lazy-loaded vendor styles must not collapse the absolute map surface. */
+.geographic-map.maplibregl-map{position:absolute;inset:0;width:100%;height:100%}

@@ -4,6 +4,7 @@ import { Map, Marker, setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { RefreshCw, WifiOff } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import './map-layout.css'
 import { shopTypes } from './shopTypes.jsx'
 
 setWorkerUrl(workerUrl)
