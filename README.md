@@ -1,0 +1,130 @@
+# زیرساخت چالش ترب
+
+پروژهٔ اولیه با Django 6.1.2، React 19.3.1، Vite، Tailwind CSS 4 و PostgreSQL 17.
+این پیکربندی برای توسعهٔ محلی است و از hot reload پشتیبانی می‌کند. صفحهٔ اصلی شامل رابط چت آزمایشی، کاراکتر اختصاصی و نقشهٔ واقعی تهران است. اتصال چت به ارائه‌دهندهٔ AI و داده‌های واقعی فروشگاه هنوز پیاده‌سازی نشده است.
+
+## اجرای Docker
+
+پیش‌نیاز: Docker Desktop با Linux containers و Docker Compose v2، در حال اجرا.
+
+بعد از clone، در ریشهٔ پروژه فایل محیطی بسازید (فایل محلی فعلی از قبل ساخته شده است):
+
+```powershell
+Copy-Item .env.example .env
+```
+
+در `.env` مقدارهای `POSTGRES_PASSWORD` و `DJANGO_SECRET_KEY` را تغییر دهید. سپس:
+
+```powershell
+docker compose up --build -d
+```
+
+- فرانت‌اند: http://localhost:5000
+- بک‌اند: http://localhost:8000
+- سلامت بک‌اند و دیتابیس: http://localhost:8000/api/health/
+- ادمین: http://localhost:5000/admin/
+- دیتابیس: `torob_hakatoon`، پورت میزبان `15432` (داخل Docker: `5432`)
+
+Migrationهای Django هنگام شروع بک‌اند خودکار اجرا می‌شوند. دیتای PostgreSQL در volume نگهداری می‌شود.
+
+```powershell
+docker compose logs -f
+docker compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py check
+docker compose exec frontend npm run build
+docker compose down
+```
+
+`docker compose down` داده‌های دیتابیس را نگه می‌دارد؛ افزودن `-v` آن‌ها را حذف می‌کند.
+بعد از تغییر وابستگی‌های فرانت، برای هماهنگی volume موجود:
+
+```powershell
+docker compose run --rm --no-deps frontend npm ci
+docker compose up --build -d
+```
+
+## تنظیمات AI
+
+در `.env` مقدارهای `AI_API_KEY`، `AI_BASE_URL`، `AI_MODEL` و `AI_TIMEOUT_SECONDS` قرار دارند و در `backend/config/settings.py` از طریق `settings.AI` در دسترس‌اند. تا تعیین سرویس، کلید و مدل خالی هستند. کلید فقط در بک‌اند خوانده می‌شود؛ آن را با پیشوند `VITE_` تعریف نکنید. در این مرحله endpoint چت یا صفحهٔ تنظیمات کاربری ساخته نشده است.
+
+## ارتباط فرانت و بک‌اند
+
+در React از آدرس نسبی `/api/` استفاده کنید. Vite درخواست‌های `/api/`، `/admin/` و `/static/` را به بک‌اند پراکسی می‌کند. بنابراین در توسعه نیازی به باز کردن CORS نیست و CSRF فعال باقی می‌ماند. برای درخواست‌های تغییردهندهٔ داده، توکن CSRF باید ارسال شود.
+
+## اجرای بدون Docker
+
+Python 3.12 یا جدیدتر (پیشنهاد: 3.13)، Node.js 24 و PostgreSQL لازم است. ابتدا دیتابیس و کاربر مطابق `.env` بسازید. نام هاست دیتابیس در اجرای محلی به صورت پیش‌فرض `127.0.0.1` است.
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.\.venv\Scripts\python.exe backend/manage.py migrate
+.\.venv\Scripts\python.exe backend/manage.py runserver
+```
+
+در ترمینال دوم:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+## Git و GitHub خصوصی
+
+Git با شاخهٔ `main` آماده است. `.env`، وابستگی‌ها و فایل‌های CSV دیتاست commit نمی‌شوند. دیتاست موجود را جداگانه و با رعایت دسترسی‌های پروژه منتقل کنید؛ `products.csv` بزرگ‌تر از محدودیت 100 MiB فایل معمول GitHub است. در صورت نیاز به نسخه‌بندی دیتاست، Git LFS را جداگانه تنظیم کنید.
+
+ابتدا یک مخزن **Private** خالی در حساب خود بسازید، سپس:
+
+```powershell
+git add .
+git commit -m "Initialize Django React PostgreSQL Docker scaffold"
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_PRIVATE_REPO.git
+git push -u origin main
+```
+
+خصوصی‌بودن در GitHub تعیین می‌شود و تنظیم محلی Git آن را تضمین نمی‌کند. مخزن آنلاین یا remote هنوز ساخته نشده است.
+
+## ساختار
+
+- `backend/config/`: تنظیمات Django، URLها، ASGI و WSGI
+- `backend/core/`: اپ اولیه و endpoint سلامت
+- `frontend/src/`: React خام و نمایش وضعیت اتصال
+- `compose.yaml`: سرویس‌های توسعه، healthcheck و volumeها
+- `.env.example`: نمونهٔ تنظیمات قابل commit
+- `dataset/`: داده‌های موجود چالش، بدون تغییر
+
+## رابط صفحهٔ اصلی
+
+- رابط RTL و واکنش‌گرا با فونت Peyda در تمام وزن‌های 100 تا 900؛ فایل‌ها از `Desktop/megatime/assets/peyda-font` کپی شده‌اند.
+- آیکون‌های رابط SVG و از مجموعهٔ Lucide هستند؛ ایموجی استفاده نمی‌شود.
+- نقشهٔ واقعی تهران با MapLibre GL JS و کاشی‌های OpenFreeMap نمایش داده می‌شود؛ هیچ وابستگی به Google Maps و کلید API ندارد.
+- نقشه از ولیعصر تهران شروع می‌شود و با `maxBounds` و حداقل زوم به محدودهٔ تهران محدود شده است. انتخاب شهرهای دیگر حذف شده است. حجم ساختمان‌های موجود در داده‌ها در نمای زاویه‌دار نمایش داده می‌شود.
+- برچسب‌های تمام لایه‌های متنی پیش از نمایش با عبارت فارسی پالایش می‌شوند. نام فارسی در اولویت است؛ نام محلی تنها در صورت داشتن حروف فارسی/عربی و نداشتن حروف لاتین نمایش داده می‌شود. نام‌های صرفاً انگلیسی، ترکیبی و شماره‌تابلوها مخفی‌اند.
+- تصویر رندرشدهٔ قبلی در پس‌زمینهٔ بخش معرفی استفاده شده است؛ کارت آن نیز با کلیک تصویر را بزرگ می‌کند.
+- جست‌وجو، فیلتر دسته‌ها، ذخیره‌های موقت نشست و گفت‌وگوی نمونه فعال‌اند. چهار نشان فروشگاه با مختصات نمونه در تهران نمایش داده می‌شوند؛ این‌ها ادعای آدرس واقعی فروشگاه نیستند.
+- خط راهنما اتصال مستقیم بین نقطهٔ شروع نمونه و مقصد است؛ مسیریابی خیابانی یا تشخیص موقعیت کاربر نیست.
+- پاسخ‌های چت محلی و از پیش تعریف‌شده‌اند. خواندن پاسخ با Web Speech API به صدای فارسی نصب‌شدهٔ مرورگر بستگی دارد. ورودی صوتی هنوز فعال نیست.
+- انیمیشن‌ها برای `prefers-reduced-motion` غیرفعال می‌شوند.
+
+### سرویس نقشه
+
+[OpenFreeMap](https://openfreemap.org/) طبق توضیح رسمی سرویس عمومی رایگان و بدون کلید API، ثبت‌نام یا سقف تعداد نمایش و درخواست است. سرویس SLA و تضمین دسترس‌پذیری ندارد. شرایط دانلود آفلاین جداگانه است؛ در این پروژه دانلود آفلاین پیاده‌سازی نشده است. [شرایط سرویس](https://openfreemap.org/tos/) و [راهنمای اتصال](https://openfreemap.org/quick_start/).
+
+نوشتهٔ MapLibre و کنترل انتساب انگلیسی حذف شده‌اند. اعتبار ضروری منابع به فارسی با لینک‌های اصلی OpenStreetMap و OpenMapTiles در پایین نقشه نمایش داده می‌شود. نقشه برای دریافت کاشی‌ها و برچسب‌ها به اینترنت و دسترسی مرورگر به `tiles.openfreemap.org` نیاز دارد. در خطای شبکه یا نبود WebGL پیام خطا و امکان تلاش مجدد نمایش داده می‌شود.
+
+آدرس سبک از `VITE_MAP_STYLE_URL` در `.env` به سرویس فرانت Docker ارسال می‌شود؛ مقدار پیش‌فرض `https://tiles.openfreemap.org/styles/positron` است. بعد از تغییر:
+
+```powershell
+docker compose up -d --force-recreate frontend
+```
+
+برای اجرای فرانت بدون Docker، همین متغیر اختیاری را در `frontend/.env.local` تنظیم کنید. این آدرس عمومی است؛ کلیدهای محرمانه را در متغیرهای `VITE_` نگذارید.
+
+### تم روشن و تاریک
+
+دکمهٔ ماه/خورشید در سربرگ، تم کل صفحه و رنگ لایه‌های خود نقشه را تغییر می‌دهد. انتخاب در `localStorage` با کلید `torob-theme` نگهداری می‌شود. تغییر تم نقشه را دوباره نمی‌سازد و موقعیت، زوم و انتخاب فروشگاه حفظ می‌شوند. رنگ‌های نقشه بر پایهٔ سبک خلوت Positron شخصی‌سازی شده‌اند.
+
+## دیتاست و ابزارهای ایجنت
+
+دیتاست کامل در PostgreSQL با مدل‌های مرتبط محصول، فروشگاه، آفر، دسته‌بندی، روش پرداخت، ساعت کاری و تماس وارد شده است. راهنمای انتقال، بررسی و ابزارهای جست‌وجو: [docs/catalog.md](docs/catalog.md). داده‌های نمونهٔ UI هنوز به این لایه وصل نشده‌اند.

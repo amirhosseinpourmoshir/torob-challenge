@@ -1,0 +1,486 @@
+[
+  {
+    "product_id": "product_00256b65241656f23bcc2f85",
+    "title": "هندزفری بلوتوثی انکر مدل Soundcore Liberty 4 NC A3947",
+    "seller_count_in_sample": 3,
+    "example": [
+      {
+        "offer_id": "offer_149557c75e14be3ac94ee6e4",
+        "product_id": "product_00256b65241656f23bcc2f85",
+        "seller_title": "هدفون بلوتوثی انکر مدل Soundcore Liberty 4 NC با نویز کنسلینگ(ANC) اصل با پشتیبانی اپلیکیشن",
+        "description": "",
+        "price_toman": 8500000,
+        "currency": "تومان",
+        "price_last_changed_at": "2026-10-09T16:25:36.495257+00:00",
+        "price_is_live_verified": false,
+        "availability_status": "unverified",
+        "availability_verified_at": null,
+        "warranty": {
+          "provider": null,
+          "description": "گارانتی 18 ماهه شرکتی",
+          "period_months": null
+        },
+        "distance_km": 1.345,
+        "distance_type": "straight_line",
+        "shop": {
+          "shop_id": "shop_bfd9bb83f753b542a41ebd0e",
+          "name": "مانیلا پاکیلا",
+          "name_is_synthetic": true,
+          "address": "میدان فردوسی، مجتمع تجارت جهانی، طبقه ۳، پلاک 3142",
+          "location_label": "فردوسی",
+          "latitude": 35.70082060893442,
+          "longitude": 51.41970591534256,
+          "website_url": null,
+          "instagram": null,
+          "supports_fast_delivery": null,
+          "weekly_hours": {
+            "fri": {
+              "shifts": [
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "closed"
+            },
+            "mon": {
+              "shifts": [
+                {
+                  "end_time": "21:00:00",
+                  "start_time": "09:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "sat": {
+              "shifts": [
+                {
+                  "end_time": "21:00:00",
+                  "start_time": "09:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "sun": {
+              "shifts": [
+                {
+                  "end_time": "21:00:00",
+                  "start_time": "09:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "thu": {
+              "shifts": [
+                {
+                  "end_time": "21:00:00",
+                  "start_time": "09:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "tue": {
+              "shifts": [
+                {
+                  "end_time": "21:00:00",
+                  "start_time": "09:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "wed": {
+              "shifts": [
+                {
+                  "end_time": "21:00:00",
+                  "start_time": "09:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            }
+          },
+          "hours_are_live_verified": false,
+          "payment_options": [],
+          "payment_options_are_declared": true,
+          "contacts_available_for_real_outreach": false
+        },
+        "source": "torob_challenge_dataset"
+      }
+    ]
+  },
+  {
+    "product_id": "product_002aaa7fcb3b49d547ac0223",
+    "title": "هدست گیمینگ اونیکوما مدل X11 با سیم",
+    "seller_count_in_sample": 1,
+    "example": [
+      {
+        "offer_id": "offer_2a323cab67d439b53165e476",
+        "product_id": "product_002aaa7fcb3b49d547ac0223",
+        "seller_title": "هدفون گیمینگ برند Onikuma مدل X11 رنگ صورتی",
+        "description": "",
+        "price_toman": 6000000,
+        "currency": "تومان",
+        "price_last_changed_at": "2026-09-09T15:34:14.737772+00:00",
+        "price_is_live_verified": false,
+        "availability_status": "unverified",
+        "availability_verified_at": null,
+        "warranty": null,
+        "distance_km": 1.7,
+        "distance_type": "straight_line",
+        "shop": {
+          "shop_id": "shop_08d32c01dba02ee9a114712c",
+          "name": "روینا مهروان",
+          "name_is_synthetic": true,
+          "address": "تقاطع خیابان جمهوری و حافظ، بازار چارسو، طبقه منفی یک، واحد A06",
+          "location_label": "فردوسی",
+          "latitude": 35.694825483512666,
+          "longitude": 51.41230565019374,
+          "website_url": null,
+          "instagram": null,
+          "supports_fast_delivery": null,
+          "weekly_hours": {},
+          "hours_are_live_verified": false,
+          "payment_options": [],
+          "payment_options_are_declared": true,
+          "contacts_available_for_real_outreach": false
+        },
+        "source": "torob_challenge_dataset"
+      }
+    ]
+  },
+  {
+    "product_id": "product_004041e676504bddaad3595a",
+    "title": "هدفون بلوتوثی انکر مدل Liberty 4 NC",
+    "seller_count_in_sample": 1,
+    "example": [
+      {
+        "offer_id": "offer_2d00816280b207a48be4bc40",
+        "product_id": "product_004041e676504bddaad3595a",
+        "seller_title": "هدفون بلوتوثی انکر مدل SUR HI-FI LY 4 NC WIRELESS",
+        "description": "",
+        "price_toman": 10800000,
+        "currency": "تومان",
+        "price_last_changed_at": "2026-09-24T08:06:10.015734+00:00",
+        "price_is_live_verified": false,
+        "availability_status": "unverified",
+        "availability_verified_at": null,
+        "warranty": null,
+        "distance_km": 1.69,
+        "distance_type": "straight_line",
+        "shop": {
+          "shop_id": "shop_82243504d8e596222320b430",
+          "name": "آذروش سرودیس",
+          "name_is_synthetic": true,
+          "address": "خیابان حافظ، بین خیابان هاتف و جمهوری اسلامی، پاساژ علاالدین، جنب آبمیوه، پلاک ۲۳۸",
+          "location_label": "شیخ هادی",
+          "latitude": 35.694850580985424,
+          "longitude": 51.41149878501893,
+          "website_url": null,
+          "instagram": null,
+          "supports_fast_delivery": true,
+          "weekly_hours": {
+            "fri": {
+              "shifts": [
+                {
+                  "end_time": "18:00:00",
+                  "start_time": "12:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "mon": {
+              "shifts": [
+                {
+                  "end_time": "20:30:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "sat": {
+              "shifts": [
+                {
+                  "end_time": "20:30:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "sun": {
+              "shifts": [
+                {
+                  "end_time": "20:30:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "thu": {
+              "shifts": [
+                {
+                  "end_time": "20:30:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "tue": {
+              "shifts": [
+                {
+                  "end_time": "20:30:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "wed": {
+              "shifts": [
+                {
+                  "end_time": "20:30:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            }
+          },
+          "hours_are_live_verified": false,
+          "payment_options": [],
+          "payment_options_are_declared": true,
+          "contacts_available_for_real_outreach": false
+        },
+        "source": "torob_challenge_dataset"
+      }
+    ]
+  },
+  {
+    "product_id": "product_0079386459abe222a10f0261",
+    "title": "کاور سیلیکونی انکر مدل SoundCore R50i NC",
+    "seller_count_in_sample": 1,
+    "example": [
+      {
+        "offer_id": "offer_037622e81fc6e6d5f2e10525",
+        "product_id": "product_0079386459abe222a10f0261",
+        "seller_title": "کاور سیلیکونی هندزفری بی سیم انکر مدل Soundcore R50i nc",
+        "description": "",
+        "price_toman": 320000,
+        "currency": "تومان",
+        "price_last_changed_at": "2026-09-10T21:19:27.585944+00:00",
+        "price_is_live_verified": false,
+        "availability_status": "unverified",
+        "availability_verified_at": null,
+        "warranty": null,
+        "distance_km": 1.683,
+        "distance_type": "straight_line",
+        "shop": {
+          "shop_id": "shop_c060bc5ea37b78e00ece4bdb",
+          "name": "نیکورا ویوان",
+          "name_is_synthetic": true,
+          "address": "خیابان جمهوری، پاساژ علاالدین، طبقه زیر همکف، پلاک ۴۴",
+          "location_label": "شیخ هادی",
+          "latitude": 35.69492793026274,
+          "longitude": 51.41168374724266,
+          "website_url": null,
+          "instagram": null,
+          "supports_fast_delivery": true,
+          "weekly_hours": {
+            "fri": {
+              "shifts": [
+                {
+                  "end_time": "15:00:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "mon": {
+              "shifts": [
+                {
+                  "end_time": "19:45:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "sat": {
+              "shifts": [
+                {
+                  "end_time": "19:45:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "sun": {
+              "shifts": [
+                {
+                  "end_time": "19:45:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "thu": {
+              "shifts": [
+                {
+                  "end_time": "19:45:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "tue": {
+              "shifts": [
+                {
+                  "end_time": "19:45:00",
+                  "start_time": "16:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            },
+            "wed": {
+              "shifts": [
+                {
+                  "end_time": "19:45:00",
+                  "start_time": "10:00:00"
+                },
+                {
+                  "end_time": "00:00:00",
+                  "start_time": "00:00:00"
+                }
+              ],
+              "status": "declared"
+            }
+          },
+          "hours_are_live_verified": false,
+          "payment_options": [],
+          "payment_options_are_declared": true,
+          "contacts_available_for_real_outreach": false
+        },
+        "source": "torob_challenge_dataset"
+      }
+    ]
+  },
+  {
+    "product_id": "product_009ffa41201e6fa9bcc69445",
+    "title": "دوربین بدون آینه Sony ZV-E10 II با لنز 16-50mm - مشکی",
+    "seller_count_in_sample": 1,
+    "example": [
+      {
+        "offer_id": "offer_0cdd921d8c2c1746a9b396ff",
+        "product_id": "product_009ffa41201e6fa9bcc69445",
+        "seller_title": "دوربین بدون آینه Sony ZV-E10 II با لنز 16-50mm - مشکی",
+        "description": "",
+        "price_toman": 277000000,
+        "currency": "تومان",
+        "price_last_changed_at": "2026-10-04T15:41:00.414660+00:00",
+        "price_is_live_verified": false,
+        "availability_status": "unverified",
+        "availability_verified_at": null,
+        "warranty": {
+          "provider": null,
+          "description": "ضمانت اصالت کالا",
+          "period_months": null
+        },
+        "distance_km": 1.61,
+        "distance_type": "straight_line",
+        "shop": {
+          "shop_id": "shop_82456c5249b8f415f1f54149",
+          "name": "نییلا پاکین",
+          "name_is_synthetic": true,
+          "address": "خیابان جمهوری اسلامی، تقاطع شیخ هادی، پاساژ یگانه، طبقه زیر همکف، پلاک 04",
+          "location_label": "شیخ هادی",
+          "latitude": 35.69570908843934,
+          "longitude": 51.40711707605627,
+          "website_url": null,
+          "instagram": null,
+          "supports_fast_delivery": null,
+          "weekly_hours": {},
+          "hours_are_live_verified": false,
+          "payment_options": [],
+          "payment_options_are_declared": true,
+          "contacts_available_for_real_outreach": false
+        },
+        "source": "torob_challenge_dataset"
+      }
+    ]
+  }
+]
