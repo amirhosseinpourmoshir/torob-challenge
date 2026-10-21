@@ -12,8 +12,9 @@ const shapes = {
   jewelry: <><path opacity=".25" d="m6 2-5 7 11 14L23 9l-5-7H6Z"/><path d="M8 3 4 8h6L8 3Zm3 0L9 8h6l-2-5h-2Zm5 0-2 5h6l-4-5ZM4 10l6 9-2-9H4Zm7 0 1 9 1-9h-2Zm5 0-2 9 6-9h-4Z"/></>,
 }
 const colors = { store: '#d25b3d', digital: '#4d68e8', fashion: '#8a4cce', home: '#168b7d', beauty: '#d74382', auto: '#4779ba', sport: '#329454', food: '#ce7727', culture: '#1389a1', jewelry: '#b38320' }
+const darkColors = { store: '#f18e74', digital: '#98a8ff', fashion: '#c59af0', home: '#65c8b6', beauty: '#ef8ab7', auto: '#8eb8ed', sport: '#86ce9b', food: '#edb46d', culture: '#72c9d9', jewelry: '#dec17c' }
 function Symbol({ kind, size = 24, className = '', style, strokeWidth: _, ...props }) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={`shop-illustration ${className}`} style={{ color: colors[kind], ...style }} aria-hidden="true" {...props}>{shapes[kind]}</svg>
+  return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={`shop-illustration ${className}`} style={{ '--symbol-color': colors[kind], '--symbol-dark': darkColors[kind], ...style }} aria-hidden="true" {...props}>{shapes[kind]}</svg>
 }
 const icon = kind => function ShopIcon(props) { return <Symbol {...props} kind={kind}/> }
 export const ShopStore = icon('store')
