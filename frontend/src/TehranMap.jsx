@@ -4,6 +4,7 @@ import { Map, Marker, setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { RefreshCw, WifiOff } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { shopTypes } from './shopTypes.jsx'
 
 setWorkerUrl(workerUrl)
 export const TEHRAN_BOUNDS = [[51.08, 35.53], [51.65, 35.84]]
@@ -55,13 +56,19 @@ function MapMarker({ map, coordinates, children, className }) {
   return createPortal(children, element)
 }
 
-const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, onSelect, theme, pickMode = false, onPick, initialCoordinates, origin }, ref) {
+const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, onSelect, theme, pickMode = false, onPick, initialCoordinates, origin, activeShop, onViewport, onVisibleCount }, ref) {
   const container = useRef(null)
   const instance = useRef(null)
   const themeRef = useRef(theme)
   themeRef.current = theme
   const pickRef = useRef(onPick)
   pickRef.current = onPick
+  const viewportRef = useRef(onViewport)
+  viewportRef.current = onViewport
+  const originRef = useRef(origin)
+  originRef.current = origin
+  const [zoom, setZoom] = useState(14)
+  const [, setCameraRevision] = useState(0)
   const initialPoint = useRef(initialCoordinates)
   const [map, setMap] = useState(null)
   const [loaded, setLoaded] = useState(false)
@@ -71,8 +78,8 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   useImperativeHandle(ref, () => ({
     zoomIn: () => instance.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 }),
     zoomOut: () => instance.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 }),
-    reset: () => instance.current?.flyTo({ ...HOME, duration: reducedMotion() ? 0 : 900 }),
-    goTo: point => { instance.current?.flyTo({ center: point, zoom: 16, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
+    reset: () => instance.current?.flyTo({ ...HOME, ...(originRef.current ? { center: originRef.current, zoom: 14.8 } : {}), duration: reducedMotion() ? 0 : 900 }),
+    goTo: point => { instance.current?.flyTo({ center: point, zoom: pickMode ? 16 : 16.6, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
     pickCenter: () => { const point = instance.current?.getCenter(); if (point && pickMode) pickRef.current?.([point.lng, point.lat]) },
     togglePitch: () => { const m = instance.current; if (m) m.easeTo({ pitch: m.getPitch() > 10 ? 0 : 50, bearing: m.getPitch() > 10 ? 0 : -12, duration: reducedMotion() ? 0 : 650 }) },
   }), [])
@@ -101,6 +108,11 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
         m = new Map({ container: container.current, style, ...HOME, ...(pickMode ? { center: initialPoint.current || HOME.center, zoom: 15.5, pitch: 0, bearing: 0 } : {}), maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران' } })
         instance.current = m
         setMap(m)
+        const publishViewport = () => {
+          const bounds = m.getBounds()
+          viewportRef.current?.({ west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth(), zoom: m.getZoom() })
+          setZoom(m.getZoom()); setCameraRevision(v => v + 1)
+        }
         const updateScale = () => {
           const y = m.getContainer().clientHeight - 20
           const distance = m.unproject([20, y]).distanceTo(m.unproject([90, y]))
@@ -116,12 +128,13 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
           m.addLayer({ id: 'guide-line-outline', type: 'line', source: 'guide-line', paint: { 'line-color': '#fffaf4', 'line-width': 7 } })
           m.addLayer({ id: 'guide-line', type: 'line', source: 'guide-line', paint: { 'line-color': '#e7463e', 'line-width': 3, 'line-dasharray': [2, 2] } })
           applyPalette(m, themeRef.current)
-          updateScale(); setLoaded(true); setError('')
+          updateScale(); publishViewport(); setLoaded(true); setError('')
         })
         m.on('error', event => {
           if (!m.getStyle() || event.error?.message?.includes('WebGL')) setError('نمایش نقشه امکان‌پذیر نیست؛ اتصال اینترنت و پشتیبانی گرافیکی مرورگر را بررسی کن.')
         })
-        m.on('moveend', updateScale)
+        m.on('moveend', () => { updateScale(); publishViewport() })
+        m.on('zoom', () => { setZoom(m.getZoom()); if (m.getZoom() < 14) publishViewport() })
         if (pickMode) {
           let dragged = false
           m.on('movestart', e => { if (e.originalEvent) dragged = true })
@@ -141,18 +154,29 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   useEffect(() => { if (map && loaded) applyPalette(map, theme) }, [theme, map, loaded])
   useEffect(() => {
     if (!map || !loaded) return
-    const shop = shops.find(s => s.id === selected)
-    if (shop) map.flyTo({ center: shop.coordinates, zoom: Math.max(15, map.getZoom()), pitch: 40, duration: reducedMotion() ? 0 : 900 })
-  }, [selected, map, loaded])
-  useEffect(() => {
-    if (!map || !loaded) return
-    const shop = shops.find(s => s.id === selected)
+    const shop = activeShop || shops.find(s => s.id === selected)
     map.getSource('guide-line')?.setData(route && shop && origin ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [origin, shop.coordinates] } } : emptyRoute)
-  }, [route, selected, loaded, map, shops, origin])
+  }, [route, selected, loaded, map, activeShop, origin])
   useEffect(() => { if (map && loaded && origin && !pickMode) map.flyTo({ center: origin, zoom: 14.8, duration: reducedMotion() ? 0 : 700 }) }, [origin, map, loaded, pickMode])
+  const occupied = []
+  const labels = []
+  const markers = map && loaded && zoom >= 14 ? [...shops].sort((a, b) => Number(b.id === selected) - Number(a.id === selected)).filter(shop => {
+    const point = map.project(shop.coordinates)
+    if (point.x < 0 || point.y < 0 || point.x > map.getContainer().clientWidth || point.y > map.getContainer().clientHeight) return false
+    if (occupied.some(p => Math.abs(p.x - point.x) < 38 && Math.abs(p.y - point.y) < 40)) return false
+    occupied.push(point)
+    return true
+  }) : []
+  const namedIds = new Set(markers.filter(shop => {
+    const point = map.project(shop.coordinates)
+    if (labels.some(p => Math.abs(p.x - point.x) < 140 && Math.abs(p.y - point.y) < 34)) return false
+    labels.push(point)
+    return true
+  }).map(shop => shop.id))
+  useEffect(() => { onVisibleCount?.(markers.length) }, [markers.length, onVisibleCount])
   return <>
     <div ref={container} className="geographic-map" role="region" aria-label="نقشه تعاملی تهران"/>
-    {map && shops.map(shop => <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`geo-shop-marker marker-${shop.color} ${selected === shop.id ? 'active' : ''}`}><button onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`}><span className="marker-label">{shop.name}<span>نمونه</span></span><span className="marker-body"><shop.icon size={20}/></span></button></MapMarker>)}
+    {markers.map(shop => { const type = shopTypes[shop.category] || shopTypes.other; const Icon = type.icon; return <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`live-shop-marker ${selected === shop.id ? 'is-active' : ''} ${zoom >= 16.2 ? 'with-name' : ''}`}><button style={{ '--shop-color': type.color }} onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`} aria-pressed={selected === shop.id} title={`${shop.name} · ${shop.type}`}><span className="live-marker-icon"><Icon size={17} strokeWidth={1.9}/></span>{zoom >= 16.2 && namedIds.has(shop.id) && <span className="live-marker-name">{shop.name}</span>}</button></MapMarker> })}
     {map && !pickMode && origin && <MapMarker map={map} coordinates={origin} className="geo-start-marker"><span>آدرس انتخابی تو</span><i/></MapMarker>}
     <div className="persian-map-scale"><span/>{scale}</div>
     <div className="persian-map-attribution"><span>© </span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">مشارکت‌کنندگان اوپن‌استریت‌مپ</a><span> · </span><a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">اوپن‌مپ‌تایلز</a></div>
