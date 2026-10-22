@@ -52,7 +52,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: development
     environment:
       API_PROXY_TARGET: http://backend:8000
       VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/positron}

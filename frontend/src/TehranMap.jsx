@@ -52,7 +52,7 @@ function MapMarker({ map, coordinates, children, className }) {
   useEffect(() => {
     const marker = new Marker({ element, anchor: 'bottom' }).setLngLat(coordinates).addTo(map)
     return () => marker.remove()
-  }, [map, element, coordinates])
+  }, [map, element, coordinates[0], coordinates[1]])
   element.className = `maplibregl-marker ${className}`
   return createPortal(children, element)
 }
@@ -81,7 +81,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
     zoomOut: () => instance.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 }),
     reset: () => instance.current?.flyTo({ ...HOME, ...(originRef.current ? { center: originRef.current, zoom: 14.8 } : {}), duration: reducedMotion() ? 0 : 900 }),
     goTo: point => { instance.current?.flyTo({ center: point, zoom: pickMode ? 16 : 16.6, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
-      showTrip: point => { const m = instance.current, start = originRef.current; if (!m || !start) return; m.fitBounds([[Math.min(start[0], point[0]), Math.min(start[1], point[1])], [Math.max(start[0], point[0]), Math.max(start[1], point[1])]], { padding: { top: 90, bottom: 220, left: 55, right: 55 }, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
+      showTrip: point => { const m = instance.current, start = originRef.current; if (!m || !start) return; m.fitBounds([[Math.min(start[0], point[0]), Math.min(start[1], point[1])], [Math.max(start[0], point[0]), Math.max(start[1], point[1])]], { padding: { top: 80, bottom: Math.min(300, m.getContainer().clientHeight * .48), left: 55, right: 55 }, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
     pickCenter: () => { const point = instance.current?.getCenter(); if (point && pickMode) pickRef.current?.([point.lng, point.lat]) },
     togglePitch: () => { const m = instance.current; if (m) m.easeTo({ pitch: m.getPitch() > 10 ? 0 : 50, bearing: m.getPitch() > 10 ? 0 : -12, duration: reducedMotion() ? 0 : 650 }) },
   }), [])

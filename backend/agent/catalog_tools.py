@@ -12,8 +12,9 @@ from django.utils import timezone
 from catalog.models import Product, Offer, Shop, PaymentOption, Category
 from catalog.map_views import distance, BOUNDS, category_group, GROUPS
 from catalog.normalization import normalize_search
-from .localization import translated_label, query_variants
-from .product_quality import REPLICA, PART, AIRPODS, assess_product, price_context
+from .localization import translated_label
+from .product_quality import REPLICA, assess_product, price_context
+from .search_policy import apply_search_intent
 
 
 def public_link(value, instagram=False):
@@ -80,49 +81,11 @@ def product_ui(product, price=None, count=None):
 
 
 def search_products(context, query, limit=6, sort='budget_fit', **filters):
-    normalized_query = normalize_search(query)
-    airpods = bool(re.search(AIRPODS, normalized_query))
-    apple = bool(re.search(r'اپل|apple', normalized_query))
-    if airpods and apple and 'original_only' not in filters:
+    candidates, predicate, wants_original = apply_search_intent(Product.objects.all(), query)
+    if wants_original and 'original_only' not in filters and ('original_only' not in context.get('preferences', {}) or re.search(r'اصل|اورجینال|original', normalize_search(query))):
         context.setdefault('preferences', {})['original_only'] = True
     offers = eligible_offers(context, **filters)
-    candidates = Product.objects.filter(pk__in=Subquery(offers.values('product_id')))
-    normalized_query = normalize_search(query)
-    # Do not sell a case/cable when the buyer asked for the device itself.
-    if not re.search(r'کاور|کیف|قاب|کابل|باتری|تعمیر|قطعه|گلس|شارژر|لوازم جانبی', normalized_query):
-        if re.search(r'هدفون|هدست|هندزفری|ایرباد|' + AIRPODS, normalized_query):
-            candidates = candidates.filter(category_id='هدفون، هدست و هندزفری')
-            candidates = candidates.exclude(persian_title__iregex=PART)
-        elif re.search(r'گوشی|موبایل|آیفون|ایفون', normalized_query):
-            candidates = candidates.filter(category_id__startswith='گوشی')
-        elif 'لپ تاپ' in normalized_query:
-            candidates = candidates.exclude(category_id__iregex='کیف|کاور|لوازم|قطعات')
-    predicate = Q()
-    for variant in query_variants(query):
-        words = variant.split()[:8]
-        if not words:
-            continue
-        part = Q()
-        for word in words:
-            part &= Q(search_text__contains=word)
-        predicate |= part
-    if airpods and not re.search(r'کیس|کاور|قاب|تک گوش|شارژر|کابل', normalized_query):
-        predicate = Q(persian_title__iregex=AIRPODS) | Q(model__iregex=AIRPODS)
-        extra = re.sub(AIRPODS + r'|اپل|apple|اصل\S*|اورجینال', ' ', normalized_query)
-        for word in extra.split():
-            if word.isdigit():
-                digits = ''.join('[' + char + '۰۱۲۳۴۵۶۷۸۹'[int(char)] + '٠١٢٣٤٥٦٧٨٩'[int(char)] + ']' for char in word)
-                pattern = r'(^|[^0-9۰-۹٠-٩])' + digits + r'([^0-9۰-۹٠-٩]|$)'
-            else:
-                pattern = r'pro|پرو' if word in ('pro', 'پرو') else re.escape(word)
-            # Model numbers in battery/specification text are not generations.
-            predicate &= Q(persian_title__iregex=pattern) | (Q(persian_title='') & Q(model__iregex=pattern))
-        if re.search(r'\d', extra) and not re.search(r'pro|پرو', extra):
-            candidates = candidates.exclude(persian_title__iregex=r'pro|پرو|max|مکس')
-        if apple:
-            candidates = candidates.filter(Q(brand_name__iregex=r'اپل|apple') | Q(persian_title__iregex=r'اپل|apple'))
-    if not predicate:
-        return {'products': [], 'note': 'نام دسته یا مدل را مشخص کن.'}
+    candidates = candidates.filter(pk__in=Subquery(offers.values('product_id')))
     stats = offers.filter(product_id=OuterRef('pk')).values('product_id').annotate(low=Min('price_toman'), count=Count('pk'))
     maximum = filters.get('max_price', context.get('preferences', {}).get('max_price'))
     order = F('low_price').desc(nulls_last=True) if maximum is not None and sort == 'budget_fit' else F('low_price').asc(nulls_last=True)
@@ -130,14 +93,14 @@ def search_products(context, query, limit=6, sort='budget_fit', **filters):
     rows, flagged = [], []
     for product in qs[:limit * 4]:
         row = product_ui(product, product.low_price, product.seller_count)
-        if context.get('preferences', {}).get('original_only') or filters.get('original_only'):
-            if row['_quality']['kind'] != 'unverified':
+        if filters.get('original_only', context.get('preferences', {}).get('original_only', False)):
+            if row['_quality']['kind'] in ('replica_declared', 'price_outlier', 'conditions_unclear'):
                 flagged.append({'title': row['title'], 'price': row['price'], **row['_quality']})
                 continue
         rows.append(row)
         if len(rows) >= limit:
             break
-    return {'products': rows, 'flagged': flagged[:6], 'market_context': price_context(query) if airpods and apple else None, 'constraints': {**context.get('preferences', {}), **filters}, 'price_is_live_verified': False, 'authenticity_is_verified': False}
+    return {'products': rows, 'flagged': flagged[:6], 'market_context': price_context(query), 'constraints': {**context.get('preferences', {}), **filters}, 'price_is_live_verified': False, 'authenticity_is_verified': False}
 
 
 def product_details(context, product_id):

@@ -83,6 +83,7 @@ def build_graph(turn_id, notify, provider=None):
                 result = execute_tool(name, args, context)
                 if name in ('store_details', 'store_products') and not result.get('error'):
                     context['selected_shop_id'] = args.get('shop_id') or context.get('selected_shop_id')
+                    context['catalog_categories'] = [row['product__category_id'] for row in result.get('catalog', {}).get('categories', []) if row.get('product__category_id')]
                 elif name == 'nearby_shops' and len(result.get('shops', [])) == 1:
                     context['selected_shop_id'] = result['shops'][0]['id']
                 if old != context.get('preferences', {}):

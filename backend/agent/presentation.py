@@ -14,10 +14,12 @@ def clean(row):
 
 
 def render_response(answer, state, turn_id):
+    from .response_policy import interaction_blocks
+    answer = interaction_blocks(answer, state)
     evidence = state.get('evidence', {})
     products, shops = evidence.get('products', {}), evidence.get('shops', {})
     if state.get('context', {}).get('preferences', {}).get('original_only'):
-        products = {key: row for key, row in products.items() if row.get('_quality', {}).get('kind', 'unverified') == 'unverified'}
+        products = {key: row for key, row in products.items() if row.get('_quality', {}).get('kind') not in ('replica_declared', 'price_outlier', 'conditions_unclear')}
     widgets = []
     blocks = answer.get('blocks', []) if isinstance(answer, dict) else []
     if not isinstance(blocks, list):
@@ -44,6 +46,8 @@ def render_response(answer, state, turn_id):
         elif kind == 'comparison' and len(selected_products) >= 2:
             keys = list(dict.fromkeys(key for product in selected_products for key in product.get('specs', {})))[:8]
             props = {'products': [clean(p) for p in selected_products], 'features': [{'key': key, 'label': key} for key in keys]}
+        elif kind == 'price_comparison' and len(selected_products) >= 2:
+            props = {'offers': [{'id': p['id'], 'name': p['title'], 'price': p.get('price')} for p in selected_products], 'basis': 'products', 'title': 'قیمت انتخاب‌ها، کنار هم'}
         elif kind in ('seller', 'offers', 'price_comparison'):
             if kind == 'seller' and shop:
                 props = {'seller': clean(shop)}
@@ -53,8 +57,7 @@ def render_response(answer, state, turn_id):
             props = {'title': product['title'], 'images': [{'src': src, 'alt': product['title']} for src in product.get('_images', [])[:12]]}
         elif kind == 'contact' and shop:
             draft = evidence.get('contacts', {}).get(shop['id'])
-            if draft:
-                props = draft
+            props = draft or {'shopId': shop['id'], 'shopName': shop['name'], 'questions': ['قیمت امروز چقدره؟', 'موجودی و شرایط کالا رو تأیید می‌کنید؟', 'برای مراجعه حضوری چه ساعتی مناسب است؟']}
         elif kind == 'alternative' and product:
             props = {'product': clean(product), 'reason': str(block.get('reason', 'این انتخاب رو هم می‌تونیم بررسی کنیم.'))[:500]}
         elif kind == 'itinerary' and selected_shops:
@@ -68,14 +71,29 @@ def render_response(answer, state, turn_id):
         widget = {'version': 1, 'id': f'{turn_id}-{len(widgets)}', 'type': kind, 'props': props}
         if not list(validator().iter_errors(widget)):
             widgets.append(widget)
-    if not widgets and state.get('discovered_products'):
+    if not any(widget['type'] in ('product', 'product_list', 'comparison', 'recommendation', 'gallery', 'alternative') for widget in widgets) and len(widgets) < 4 and state.get('discovered_products'):
         found = [clean(products[id]) for id in state['discovered_products'][:3] if id in products]
         if found:
             widgets.append({'version': 1, 'id': f'{turn_id}-auto', 'type': 'product_list', 'props': {'products': found}})
-    if not widgets and state.get('discovered_shops'):
+    if not any(widget['type'] in ('offers', 'seller', 'price_comparison', 'contact') for widget in widgets) and len(widgets) < 4 and state.get('discovered_shops'):
         found = [clean(shops[id]) for id in state['discovered_shops'][:6] if id in shops]
         if found:
             widgets.append({'version': 1, 'id': f'{turn_id}-auto', 'type': 'offers', 'props': {'offers': found}})
+    kinds = {widget['type'] for widget in widgets}
+    comparison = next((widget for widget in widgets if widget['type'] == 'comparison'), None)
+    if comparison and 'price_comparison' not in kinds and len(widgets) < 4:
+        rows = [{'id': row['id'], 'name': row['title'], 'price': row.get('price')} for row in comparison['props']['products'] if row.get('price') is not None]
+        if len(rows) >= 2:
+            widgets.append({'version': 1, 'id': f'{turn_id}-prices', 'type': 'price_comparison', 'props': {'offers': rows, 'basis': 'products', 'title': 'قیمت انتخاب‌ها، کنار هم'}})
+    discovered = [shops[id] for id in state.get('discovered_shops', []) if id in shops]
+    if discovered and 'price_comparison' not in kinds and len(widgets) < 3:
+        priced = [clean(row) for row in discovered if row.get('price') is not None]
+        if len(priced) >= 2:
+            widgets.append({'version': 1, 'id': f'{turn_id}-prices', 'type': 'price_comparison', 'props': {'offers': priced[:8]}})
+    if discovered and 'contact' not in kinds and len(widgets) < 4:
+        shop = discovered[0]
+        widgets.append({'version': 1, 'id': f'{turn_id}-inquiry', 'type': 'contact', 'props': {'shopId': shop['id'], 'shopName': shop['name'], 'questions': ['قیمت و موجودی امروز رو تأیید می‌کنید؟', 'تا چه ساعتی امکان مراجعه حضوری هست؟']}})
+    widgets = [widget for widget in widgets if not list(validator().iter_errors(widget))]
     text = answer.get('text', '') if isinstance(answer, dict) else ''
     if not isinstance(text, str) or not text.strip():
         text = 'این انتخاب‌ها رو ببین؛ کدوم به چیزی که توی ذهنته نزدیک‌تره؟' if widgets else 'یه کم بیشتر راهنماییم می‌کنی؟ چه چیزی می‌خوای بخری و حدود بودجه‌ات چقدره؟'

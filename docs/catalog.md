@@ -75,4 +75,4 @@ docker compose exec backend python manage.py test catalog core
 docker compose exec backend python manage.py audit_catalog
 ```
 
-گزارش audit تعداد رکوردها، مراجع، قیمت‌ها، تاریخ‌ها، مختصات، مشخصات و تصاویر را با دادهٔ ذخیره‌شدهٔ منبع تطبیق می‌دهد. خروجی نهایی انتقال در `docs/catalog-import-report.json` قرار دارد.
+گزارش audit تعداد رکوردها، مراجع، قیمت‌ها، تاریخ‌ها، مختصات، مشخصات و تصاویر را با دادهٔ ذخیره‌شدهٔ منبع تطبیق می‌دهد. گزارش جاری را با `python manage.py audit_catalog` تولید کنید؛ خروجی‌های موقت گزارش در مخزن نگهداری نمی‌شوند.

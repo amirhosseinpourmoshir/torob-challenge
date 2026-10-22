@@ -3,15 +3,35 @@ import json
 from django.db import transaction, connection
 from django.db.models import Min, Count, OuterRef, Subquery
 from django.middleware.csrf import get_token
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from catalog.models import Product, Shop
 from core.addresses import owner, body
 from core.models import SavedAddress
 from .models import SavedProduct, Conversation
-from .catalog_tools import product_details, find_sellers, eligible_offers, store_products, shop_ui
+from .catalog_tools import product_details, find_sellers, eligible_offers, store_products, shop_ui, prepare_contact
 from .localization import translated_label
 from .presentation import clean
 from .views import private_response
+from catalog.models import Offer
+from catalog.map_views import BOUNDS
+
+
+@require_POST
+def shop_inquiry(request, shop_id):
+    try:
+        Shop.objects.get(pk=shop_id, longitude__range=(BOUNDS[0], BOUNDS[2]), latitude__range=(BOUNDS[1], BOUNDS[3]))
+        data = body(request)
+        product_id = data.get('product_id')
+        if product_id is not None and (not isinstance(product_id, str) or not Offer.objects.filter(shop_id=shop_id, product_id=product_id).exists()):
+            return private_response({'error': 'این کالا در ویترین فروشگاه پیدا نشد.'}, 400)
+        product = Product.objects.get(pk=product_id) if product_id else None
+        questions = [f'قیمت و موجودی امروزِ {product.persian_title or product.model} چقدره؟' if product else 'قیمت و موجودی کالای موردنظر رو تأیید می‌کنید؟', 'کالا نو و کامل است؟ شرایط گارانتی و خرید اعتباری چیه؟', 'چه ساعتی برای مراجعه حضوری مناسب است؟']
+        result = prepare_contact(context_for(request), shop_id, questions)
+        return private_response({'contact': result['contact'], 'status': 'draft_only', 'can_send_automatically': False})
+    except (Shop.DoesNotExist, Product.DoesNotExist):
+        return private_response({'error': 'فروشگاه یا محصول پیدا نشد.'}, 404)
+    except (ValueError, TypeError):
+        return private_response({'error': 'انتخابت کامل نرسید؛ دوباره امتحان کن.'}, 400)
 
 
 def context_for(request):

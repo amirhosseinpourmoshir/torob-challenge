@@ -44,6 +44,51 @@ class AgentCatalogTests(TestCase):
         self.assertIn('عمر باتری', result['products'][0]['specs'])
         self.assertEqual(search_products(self.context, 'کاور هدفون')['products'][0]['id'], 'p-case')
 
+    def test_shared_search_policy_rejects_accessories_and_wrong_model_for_other_brands(self):
+        category = Category.objects.create(name='گوشی موبایل')
+        accessory = Category.objects.create(name='قاب و گلس گوشی موبایل')
+        for id, title, category, price in [('phone15', 'گوشی اپل آیفون ۱۵', category, 50000000), ('phone14', 'گوشی اپل آیفون ۱۴', category, 40000000), ('cover15', 'قاب گوشی اپل آیفون ۱۵', accessory, 100000)]:
+            product = Product.objects.create(id=id, persian_title=title, category=category, brand_name='Apple', specs=[{'key': 'سازگاری', 'value': 'آیفون ۱۵'}], search_text=title + ' آیفون 15', source_data={}, dataset_import=self.product.dataset_import)
+            Offer.objects.create(id='offer-' + id, product=product, shop_id='s-0', price_toman=price, source_data={}, dataset_import=self.product.dataset_import)
+        self.assertEqual([row['id'] for row in search_products(self.context, 'آیفون 15 اپل')['products']], ['phone15'])
+        self.assertEqual([row['id'] for row in search_products(self.context, 'قاب آیفون 15')['products']], ['cover15'])
+
+    def test_price_anomaly_uses_same_product_peers_for_every_category(self):
+        from .product_quality import assess_product
+        self.assertEqual(assess_product(self.product, 1)['kind'], 'price_outlier')
+        self.assertIn('میانه', assess_product(self.product, 1)['reason'])
+
+    def test_copy_function_is_not_a_replica_claim_and_invalid_cards_do_not_hide_questions(self):
+        from .product_quality import assess_product
+        self.product.persian_title = 'دستگاه فتوکپی کانن'
+        self.product.specs = [{'key': 'امکانات', 'value': 'پرینت و کپی دو رو'}]
+        self.assertEqual(assess_product(self.product, 200)['kind'], 'unverified')
+        response = render_response({'text': 'دنبال کدوم نوع کالا هستی؟', 'blocks': [{'type': 'offers', 'shop_ids': ['unknown']}]*4}, {}, 'invalid')
+        self.assertEqual(response['widgets'][0]['type'], 'clarification')
+
+    def test_questions_budget_charts_and_inquiry_are_validated_interactions(self):
+        question = render_response({'text': 'برای ورزش می‌خوای یا کار؟'}, {}, 'question')
+        self.assertEqual(question['widgets'][0]['type'], 'clarification')
+        self.assertEqual(question['widgets'][0]['props']['presentation'], 'popup')
+        budget = render_response({'text': 'حدود بودجه‌ات چقدره؟'}, {}, 'budget')
+        self.assertEqual(budget['widgets'][0]['type'], 'budget')
+        shops = find_sellers(self.context, 'p-main')['shops']
+        state = {'evidence': {'shops': {row['id']: row for row in shops}}, 'discovered_shops': [row['id'] for row in shops]}
+        response = render_response({'text': 'قبل از رفتن استعلام کنیم؟'}, state, 'sellers')
+        self.assertEqual({row['type'] for row in response['widgets']}, {'offers', 'price_comparison', 'contact'})
+        self.assertTrue(all(not list(validator().iter_errors(widget)) for widget in response['widgets']))
+
+    def test_direct_inquiry_is_csrf_protected_and_only_prepares_a_draft(self):
+        client = Client(enforce_csrf_checks=True)
+        token = client.get('/api/agent/saved-products/').json()['csrf_token']
+        path = '/api/agent/shops/s-0/inquiry/'
+        self.assertEqual(client.post(path, data='{}', content_type='application/json').status_code, 403)
+        response = client.post(path, data=json.dumps({'product_id': 'p-main'}), content_type='application/json', HTTP_X_CSRFTOKEN=token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'draft_only')
+        self.assertFalse(response.json()['can_send_automatically'])
+        self.assertIn('هدفون برای موسیقی', response.json()['contact']['draft'])
+
     def test_airpods_generation_comes_from_title_not_unrelated_specs(self):
         for id, title, price in [('air4', 'ایرپاد ۴ اپل', 33000000), ('airpro', 'ایرپاد پرو ۲ اپل', 40000000), ('aircase', 'کیس ایرپاد ۴ اپل', 1000000), ('aircopy', 'ایرپاد ۴ اپل های کپی', 1000000)]:
             product = Product.objects.create(id=id, persian_title=title, brand_name='Apple', model='AirPods 4', category=self.product.category, specs=[{'key': 'battery', 'value': '4 hours'}], search_text=title + ' 4', source_data={}, dataset_import=self.product.dataset_import)

@@ -1,0 +1,82 @@
+# Standalone production configuration. Never combine it with compose.yaml.
+name: torob-hakatoon
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-torob_hakatoon}
+      POSTGRES_USER: ${POSTGRES_USER:-torob}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  backend:
+    image: torob-hakatoon-backend:production
+    build: ./backend
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DJANGO_DEBUG: 'false'
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      WEB_THREADS: ${WEB_THREADS:-4}
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py bootstrap_panel && gunicorn config.wsgi:application --config gunicorn.conf.py"
+    volumes:
+      - static_files:/app/staticfiles
+      - ./dataset:/dataset:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    restart: unless-stopped
+    init: true
+  agentworker:
+    image: torob-hakatoon-agentworker:production
+    build: ./backend
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DJANGO_DEBUG: 'false'
+    command: python manage.py agent_worker
+    volumes:
+      - ./dataset:/dataset:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 45s
+  frontend:
+    image: torob-hakatoon-frontend:production
+    build:
+      context: ./frontend
+      target: production
+      args:
+        VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/positron}
+    ports:
+      - '${SERVER_BIND:-0.0.0.0}:${FRONTEND_PORT:-5000}:8080'
+    volumes:
+      - static_files:/srv/static:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/healthz']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  static_files:

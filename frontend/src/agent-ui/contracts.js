@@ -34,7 +34,7 @@ export const widgetPropsSchemas = {
   clock: obj({ label: str, showSeconds: bool }), visit: obj({ date, slots: list(str, 16) }, ['date']),
   gallery: obj({ title: str, images: list(image, 12) }, ['images']),
   price_history: obj({ title: str, points: list(obj({ date: timestamp, price: amount }, ['date', 'price']), 365) }, ['points']),
-  price_comparison: obj({ title: str, offers: list(seller, 8) }, ['offers']),
+  price_comparison: obj({ title: str, basis: { enum: ['products', 'stores'] }, offers: list(seller, 8) }, ['offers']),
   fit_score: obj({ title: str, scores: list(obj({ label: str, value: { type: 'number', minimum: 0, maximum: 100 } }, ['label', 'value']), 8), description: str }, ['scores']),
   empty: obj({ title: str, description: str }), loading: obj({ label: str }), error: obj({ message: str }),
   source: obj({ label: str, updatedAt: timestamp, status: { enum: ['confirmed', 'unverified'] } }),

@@ -66,6 +66,9 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = os.getenv('COOKIE_SECURE', 'false').lower() == 'true'
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 GEOCODER_BASE_URL = os.getenv('GEOCODER_BASE_URL', 'https://photon.komoot.io')
 GEOCODER_USER_AGENT = os.getenv('GEOCODER_USER_AGENT', 'TorobHamrah/1.0 (+https://github.com/amirhosseinpourmoshir/torob-challenge)')

@@ -1913,6 +1913,12 @@
               "type": "string",
               "maxLength": 2000
             },
+            "basis": {
+              "enum": [
+                "products",
+                "stores"
+              ]
+            },
             "offers": {
               "type": "array",
               "items": {

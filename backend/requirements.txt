@@ -8,3 +8,4 @@ cryptography==50.0.2
 langgraph==1.2.16
 jsonschema==4.26.0
 jdatetime==6.1.1
+gunicorn==23.0.0

@@ -1,7 +1,61 @@
 [
-  {"model":"Apple AirPods Pro 2 USB-C","variant":"airpods_pro_2","price_toman":54000000,"source_name":"پرشین اپل","source_url":"https://persianapple.ir/UI/PriceListPrint.aspx?MP=&PC=&PF=&PN=&PT=&SP=&ST=available","observed_at":"2026-10-22","condition":"نو، مجموعه کامل USB-C؛ قیمت اعلامی یک فروشگاه"},
-  {"model":"Apple AirPods 4","variant":"airpods_4","price_toman":32500000,"source_name":"اپل‌سنتر آرس","source_url":"https://aresit.ir/airpods","observed_at":"2026-10-22","condition":"نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه"},
-  {"model":"Apple AirPods 4 ANC","variant":"airpods_4_anc","price_toman":42790000,"source_name":"اپل‌سنتر آرس","source_url":"https://aresit.ir/airpods","observed_at":"2026-10-22","condition":"نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه"},
-  {"model":"Apple AirPods 4 ANC","variant":"airpods_4_anc","price_toman":40699000,"source_name":"اسپاتی‌بایت","source_url":"https://spotibyte.com/p/fd48d471-7a09-43b7-88c5-eaee52e1931c/apple-airpods-4-anc","observed_at":"2026-10-22","condition":"نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه"},
-  {"model":"Apple AirPods Pro 3","variant":"airpods_pro_3","price_toman":63290000,"source_name":"اپل‌سنتر آرس","source_url":"https://aresit.ir/airpods","observed_at":"2026-10-22","condition":"نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه"}
+  {
+    "model": "Apple AirPods Pro 2 USB-C",
+    "variant": "airpods_pro_2",
+    "price_toman": 54000000,
+    "source_name": "پرشین اپل",
+    "source_url": "https://persianapple.ir/UI/PriceListPrint.aspx?MP=&PC=&PF=&PN=&PT=&SP=&ST=available",
+    "observed_at": "2026-10-22",
+    "condition": "نو، مجموعه کامل USB-C؛ قیمت اعلامی یک فروشگاه",
+    "match_pattern": "(?:پرو|pro)\\s*2",
+    "family_pattern": "ایر\\s*پاد|air\\s*pods?",
+    "condition_pattern": "usb.?c|تایپ\\s*سی|type.?c"
+  },
+  {
+    "model": "Apple AirPods 4",
+    "variant": "airpods_4",
+    "price_toman": 32500000,
+    "source_name": "اپل‌سنتر آرس",
+    "source_url": "https://aresit.ir/airpods",
+    "observed_at": "2026-10-22",
+    "condition": "نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه",
+    "match_pattern": "(?:ایر\\s*پاد|air\\s*pods?)\\s*4|نسل\\s*(?:چهارم|4)",
+    "family_pattern": "ایر\\s*پاد|air\\s*pods?",
+    "exclude_pattern": "anc|نویز\\s*کنسل|نویزگیر|حذف\\s*نویز"
+  },
+  {
+    "model": "Apple AirPods 4 ANC",
+    "variant": "airpods_4_anc",
+    "price_toman": 42790000,
+    "source_name": "اپل‌سنتر آرس",
+    "source_url": "https://aresit.ir/airpods",
+    "observed_at": "2026-10-22",
+    "condition": "نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه",
+    "match_pattern": "(?:ایر\\s*پاد|air\\s*pods?)\\s*4|نسل\\s*(?:چهارم|4)",
+    "family_pattern": "ایر\\s*پاد|air\\s*pods?",
+    "condition_pattern": "anc|نویز\\s*کنسل|نویزگیر|حذف\\s*نویز"
+  },
+  {
+    "model": "Apple AirPods 4 ANC",
+    "variant": "airpods_4_anc",
+    "price_toman": 40699000,
+    "source_name": "اسپاتی‌بایت",
+    "source_url": "https://spotibyte.com/p/fd48d471-7a09-43b7-88c5-eaee52e1931c/apple-airpods-4-anc",
+    "observed_at": "2026-10-22",
+    "condition": "نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه",
+    "match_pattern": "(?:ایر\\s*پاد|air\\s*pods?)\\s*4|نسل\\s*(?:چهارم|4)",
+    "family_pattern": "ایر\\s*پاد|air\\s*pods?",
+    "condition_pattern": "anc|نویز\\s*کنسل|نویزگیر|حذف\\s*نویز"
+  },
+  {
+    "model": "Apple AirPods Pro 3",
+    "variant": "airpods_pro_3",
+    "price_toman": 63290000,
+    "source_name": "اپل‌سنتر آرس",
+    "source_url": "https://aresit.ir/airpods",
+    "observed_at": "2026-10-22",
+    "condition": "نو، مجموعه کامل؛ قیمت اعلامی یک فروشگاه",
+    "match_pattern": "(?:پرو|pro)\\s*3",
+    "family_pattern": "ایر\\s*پاد|air\\s*pods?"
+  }
 ]
