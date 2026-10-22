@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:agent-ui": "node --test src/agent-ui/agent-ui.test.js"
   },
   "dependencies": {
+    "apexcharts": "8.4.1",
     "lucide-react": "^1.61.0",
     "maplibre-gl": "^6.15.0",
     "react": "19.3.1",
+    "react-apexcharts": "2.1.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
