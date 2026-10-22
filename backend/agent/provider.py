@@ -69,6 +69,7 @@ def json_content(content):
     value = content.strip()
     if value.startswith('```'):
         value = value.split('\n', 1)[-1].rsplit('```', 1)[0]
+    standalone = {'quick_replies', 'clarification', 'budget', 'preferences', 'empty', 'checklist', 'clock', 'calendar', 'visit'}
     try:
         data = json.loads(value)
     except json.JSONDecodeError:
@@ -87,6 +88,11 @@ def json_content(content):
                 if 'blocks' in data and 'text' not in data:
                     data['text'] = value[:index].strip().removesuffix('```json').removesuffix('```').strip()
                 break
+            if isinstance(candidate, dict) and candidate.get('type') in standalone:
+                data = {'text': value[:index].strip().removesuffix('```json').removesuffix('```').strip(), 'blocks': [candidate]}
+                break
     if not isinstance(data, dict):
         raise ValueError('پاسخ ساخت‌یافته نبود.')
+    if data.get('type') in standalone:
+        data = {'text': '', 'blocks': [data]}
     return data

@@ -44,6 +44,61 @@ class AgentCatalogTests(TestCase):
         self.assertIn('عمر باتری', result['products'][0]['specs'])
         self.assertEqual(search_products(self.context, 'کاور هدفون')['products'][0]['id'], 'p-case')
 
+    def test_airpods_generation_comes_from_title_not_unrelated_specs(self):
+        for id, title, price in [('air4', 'ایرپاد ۴ اپل', 33000000), ('airpro', 'ایرپاد پرو ۲ اپل', 40000000), ('aircase', 'کیس ایرپاد ۴ اپل', 1000000), ('aircopy', 'ایرپاد ۴ اپل های کپی', 1000000)]:
+            product = Product.objects.create(id=id, persian_title=title, brand_name='Apple', model='AirPods 4', category=self.product.category, specs=[{'key': 'battery', 'value': '4 hours'}], search_text=title + ' 4', source_data={}, dataset_import=self.product.dataset_import)
+            Offer.objects.create(id='offer-' + id, product=product, shop_id='s-0', price_toman=price, source_data={}, dataset_import=self.product.dataset_import)
+        result = search_products(self.context, 'ایرپاد 4 اپل')
+        self.assertEqual([row['id'] for row in result['products']], ['air4'])
+        self.assertTrue(result['constraints']['original_only'])
+        from .product_quality import assess_product
+        from datetime import date
+        with patch('agent.product_quality.timezone.localdate', return_value=date(2026, 10, 22)):
+            self.assertEqual(assess_product(Product.objects.get(pk='air4'), 1000000)['kind'], 'price_outlier')
+        with patch('agent.product_quality.timezone.localdate', return_value=date(2026, 11, 22)):
+            self.assertEqual(assess_product(Product.objects.get(pk='air4'), 1000000)['kind'], 'unverified')
+
+    def test_store_catalog_has_actual_products_and_pagination(self):
+        from .catalog_tools import store_products, store_details
+        result = store_products({'preferences': {}, 'selected_shop_id': 's-0'}, limit=1)
+        self.assertEqual(result['catalog']['total_products'], 2)
+        self.assertTrue(result['catalog']['has_more'])
+        self.assertEqual(len(store_products(self.context, 's-0', query='موسیقی')['products']), 1)
+        self.assertEqual(len(store_details(self.context, 's-0')['products']), 2)
+        self.assertTrue(store_products(self.context).get('needs_shop'))
+
+    def test_product_map_section_does_not_wait_for_similar_products(self):
+        with patch('agent.library_views.priced_products', side_effect=AssertionError('similar path must be independent')):
+            response = self.client.get('/api/agent/products/p-main/?section=stores')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()['map_shops']), 4)
+        self.assertEqual(response.json()['similar'], [])
+        response = self.client.get('/api/agent/products/p-main/?section=similar')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['offers'], [])
+        self.assertEqual(self.client.get('/api/agent/shops/s-0/products/').json()['catalog']['total_products'], 2)
+
+    def test_inline_quick_reply_is_rendered_as_buttons_not_json_text(self):
+        from .provider import json_content
+        answer = json_content('بودجه رو بیشتر کنیم؟ ' + json.dumps({'type': 'quick_replies', 'options': [{'id': 'more', 'label': 'افزایش بودجه'}]}))
+        response = render_response(answer, {}, 'inline')
+        self.assertEqual(response['text'], 'بودجه رو بیشتر کنیم؟')
+        self.assertEqual(response['widgets'][0]['type'], 'quick_replies')
+
+    def test_selected_map_store_is_owned_and_included_in_next_turn(self):
+        client = Client(enforce_csrf_checks=True)
+        initial = client.get('/api/agent/conversations/').json()
+        path = f"/api/agent/conversations/{initial['id']}/focus-shop/"
+        payload = json.dumps({'shop_id': 's-0'})
+        self.assertEqual(client.post(path, data=payload, content_type='application/json').status_code, 403)
+        self.assertEqual(client.post(path, data=payload, content_type='application/json', HTTP_X_CSRFTOKEN=initial['csrf_token']).status_code, 200)
+        other = Client(enforce_csrf_checks=True)
+        token = other.get('/api/agent/conversations/').json()['csrf_token']
+        self.assertEqual(other.post(path, data=payload, content_type='application/json', HTTP_X_CSRFTOKEN=token).status_code, 404)
+        response = client.post(f"/api/agent/conversations/{initial['id']}/turns/", data=json.dumps({'text': 'چیا میفروشه؟', 'request_id': str(uuid.uuid4())}), content_type='application/json', HTTP_X_CSRFTOKEN=initial['csrf_token'])
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(AgentTurn.objects.get(pk=response.json()['id']).context['selected_shop_id'], 's-0')
+
     def test_credit_requires_same_option_price_category_and_in_person_channel(self):
         result = find_sellers(self.context, 'p-main', credit_only=True, provider='الف')
         self.assertEqual([row['id'] for row in result['shops']], ['s-1'])

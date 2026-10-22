@@ -105,6 +105,8 @@ export default function AgentChat({ panelRef, composerRef, onToast, onMapShops, 
     const submittedEpoch = epoch.current
     setPosting(true); setPendingText(action ? labels[action.type] || text : request.text); setMessage(''); setError('')
     try {
+      await shopping?.waitForFocus()
+      if (submittedEpoch !== epoch.current) return
       const turn = await api(`conversations/${conversation}/turns/`, 'POST', request)
       if (submittedEpoch !== epoch.current) return
       setTurns(previous => previous.some(t => t.id === turn.id) ? previous : [...previous, turn]); setPendingText(''); lastRequest.current = null

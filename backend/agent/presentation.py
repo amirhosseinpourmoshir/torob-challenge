@@ -16,6 +16,8 @@ def clean(row):
 def render_response(answer, state, turn_id):
     evidence = state.get('evidence', {})
     products, shops = evidence.get('products', {}), evidence.get('shops', {})
+    if state.get('context', {}).get('preferences', {}).get('original_only'):
+        products = {key: row for key, row in products.items() if row.get('_quality', {}).get('kind', 'unverified') == 'unverified'}
     widgets = []
     blocks = answer.get('blocks', []) if isinstance(answer, dict) else []
     if not isinstance(blocks, list):

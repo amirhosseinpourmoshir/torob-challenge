@@ -77,7 +77,7 @@ def execute_turn(turn):
                 heartbeat()
         with transaction.atomic():
             conversation = Conversation.objects.select_for_update().get(pk=conversation.pk)
-            conversation.state = {'messages': state['messages'], 'evidence': state.get('evidence', {}), 'preferences': state['context'].get('preferences', {})}
+            conversation.state = {'messages': state['messages'], 'evidence': state.get('evidence', {}), 'preferences': state['context'].get('preferences', {}), 'selected_shop_id': conversation.state.get('selected_shop_id') if conversation.state.get('selected_shop_id') != turn.context.get('selected_shop_id') else state['context'].get('selected_shop_id')}
             conversation.save(update_fields=['state', 'updated_at'])
             AgentTurn.objects.filter(pk=turn.pk).update(status='done', response=state['response'], error='', checkpoint={}, lease_until=None, updated_at=timezone.now())
     except (TurnCancelled, Conversation.DoesNotExist):

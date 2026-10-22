@@ -81,8 +81,15 @@ def build_graph(turn_id, notify, provider=None):
                     if not list(Draft202012Validator(TOOL_DEFINITIONS[name][1]).iter_errors(args)):
                         context.setdefault('preferences', {}).update({k: v for k, v in args.items() if k in FILTERS})
                 result = execute_tool(name, args, context)
+                if name in ('store_details', 'store_products') and not result.get('error'):
+                    context['selected_shop_id'] = args.get('shop_id') or context.get('selected_shop_id')
+                elif name == 'nearby_shops' and len(result.get('shops', [])) == 1:
+                    context['selected_shop_id'] = result['shops'][0]['id']
                 if old != context.get('preferences', {}):
                     evidence = {}; products = []; shops = []
+                if name in ('search_products', 'store_products') and not result.get('error'):
+                    products = []
+                    evidence['products'] = {}
                 evidence = collect_evidence(evidence, result)
                 products = list(dict.fromkeys([*products, *(p['id'] for p in result.get('products', []) if p.get('id'))]))[-20:]
                 shops = list(dict.fromkeys([*shops, *(s['id'] for s in result.get('shops', []) if s.get('id'))]))[-20:]

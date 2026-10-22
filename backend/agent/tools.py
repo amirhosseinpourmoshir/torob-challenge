@@ -14,7 +14,7 @@ TEXT = {'type': 'string', 'maxLength': 160}
 ID = {'type': 'string', 'minLength': 1, 'maxLength': 100}
 LIMIT = {'type': 'integer', 'minimum': 1, 'maximum': 8}
 PRICE = {'type': ['integer', 'null'], 'minimum': 0, 'maximum': 1_000_000_000_000}
-FILTERS = {'max_price': PRICE, 'min_price': PRICE, 'credit_only': {'type': 'boolean'}, 'provider': TEXT}
+FILTERS = {'max_price': PRICE, 'min_price': PRICE, 'credit_only': {'type': 'boolean'}, 'original_only': {'type': 'boolean'}, 'provider': TEXT}
 TOOL_DEFINITIONS = {
     'load_skill': ('راهنمای تخصصی فروشندگی، دستهٔ کالا، تهران، اقساط، رابط یا بازیابی مسیر را بخوان.', parameters({'name': {'enum': list(SKILLS)}}, ['name'])),
     'get_context': ('زمان شمسی و ساعت تهران، آدرس فعال و محدودیت‌های همین گفتگو؛ بدون تغییر موقعیت کاربر.', parameters({})),
@@ -26,6 +26,8 @@ TOOL_DEFINITIONS = {
     'find_sellers': ('فروشندگان ثبت‌شدهٔ همین محصول؛ فیلتر قیمت، خرید اعتباری حضوری، فاصله و ساعت ثبت‌شده. موجودی و ساعات زنده تأیید نمی‌شوند.', parameters({'product_id': ID, 'sort': {'enum': ['price', 'distance']}, 'radius_km': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 50}, 'limit': LIMIT, 'exclude_shop_ids': {'type': 'array', 'items': ID, 'maxItems': 10}, 'open_now': {'type': 'boolean'}, **FILTERS}, ['product_id'])),
     'nearby_shops': ('فروشگاه‌های نزدیک آدرس فعال با دسته یا محله؛ این ابزار موجودی محصول خاص را اثبات نمی‌کند.', parameters({'query': TEXT, 'neighborhood': TEXT, 'limit': LIMIT})),
     'store_details': ('نشانی دقیق/داخل پاساژ، ساعت ثبت‌شده، روش‌های پرداخت و لینک‌های رسمی فروشگاه.', parameters({'shop_id': ID}, ['shop_id'])),
+    'store_products': ('محصولات، دسته‌ها و قیمت‌های فروش یک فروشگاه مشخص؛ برای «چیا میفروشه؟ افرهاش چیه؟» حتماً اجرا کن. بدون shop_id فروشگاه انتخابی فعلی استفاده می‌شود. query و category برای محدودکردن، offset برای ادامه.', parameters({'shop_id': ID, 'query': TEXT, 'category': TEXT, 'limit': LIMIT, 'offset': {'type': 'integer', 'minimum': 0, 'maximum': 1000}})),
+    'price_context': ('قیمت‌های مرجع تاریخ‌دار مدل‌های پوشش‌داده‌شده برای بررسی اختلاف شدید قیمت؛ منبع، مدل و تاریخ را ذکر کن، از قیمت حافظه‌ای یا حکم قطعی فیک بودن استفاده نکن.', parameters({'query': TEXT}, ['query'])),
     'neighborhood_info': ('محله‌ها و مرکز تراکم فروشگاه‌های موجود در دیتاست تهران را پیدا کن؛ اطلاعات جغرافیایی دلخواه نساز.', parameters({'query': TEXT})),
     'payment_providers': ('نام ارائه‌دهنده‌ها و تعداد روش‌های حضوری واقعی را ببین.', parameters({})),
     'prepare_contact': ('فقط متن استعلام و لینک رسمی فروشگاه را آماده کن. هیچ تماس یا دایرکتی ارسال نمی‌شود.', parameters({'shop_id': ID, 'questions': {'type': 'array', 'items': {'type': 'string', 'maxLength': 300}, 'maxItems': 6}}, ['shop_id'])),
@@ -34,6 +36,8 @@ TOOL_DEFINITIONS = {
 TOOL_SPECS = [{'type': 'function', 'function': {'name': name, 'description': description, 'parameters': schema}} for name, (description, schema) in TOOL_DEFINITIONS.items()]
 TOOL_LABELS = {'load_skill': 'دارم راهنمای انتخاب رو بررسی می‌کنم', 'get_context': 'شرایط خریدت رو بررسی می‌کنم', 'set_preferences': 'انتخاب‌هات رو نگه می‌دارم', 'search_categories': 'دستهٔ مناسب رو پیدا می‌کنم', 'search_products': 'دارم مدل‌های مناسب رو پیدا می‌کنم', 'product_details': 'جزئیات این مدل رو می‌خونم', 'compare_products': 'تفاوت مدل‌ها رو کنار هم می‌ذارم', 'find_sellers': 'فروشگاه‌های این محصول رو بررسی می‌کنم', 'nearby_shops': 'دارم اطرافت رو می‌گردم', 'store_details': 'نشانی و شرایط فروشگاه رو بررسی می‌کنم', 'neighborhood_info': 'این محله رو در داده‌ها بررسی می‌کنم', 'payment_providers': 'روش‌های خرید اعتباری رو بررسی می‌کنم', 'prepare_contact': 'متن استعلام رو آماده می‌کنم', 'price_history': 'داده‌های قیمت رو بررسی می‌کنم'}
 
+
+TOOL_LABELS.update(store_products='دارم ویترین این فروشگاه رو می‌بینم', price_context='قیمت و نشانه‌های اصالت رو بررسی می‌کنم')
 
 def execute_tool(name, arguments, context):
     if name not in TOOL_DEFINITIONS:
@@ -70,6 +74,10 @@ def execute_tool(name, arguments, context):
             return catalog.nearby_shops(context, **arguments)
         if name == 'store_details':
             return catalog.store_details(context, **arguments)
+        if name == 'store_products':
+            return catalog.store_products(context, **arguments)
+        if name == 'price_context':
+            return catalog.price_context(**arguments)
         if name == 'neighborhood_info':
             return catalog.neighborhood_info(**arguments)
         if name == 'payment_providers':

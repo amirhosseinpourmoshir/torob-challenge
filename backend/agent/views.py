@@ -10,6 +10,8 @@ from core.addresses import owner, body
 from core.models import SavedAddress
 from .models import Conversation, AgentTurn, WorkerHeartbeat
 from .catalog_tools import time_context
+from catalog.models import Shop
+from catalog.map_views import BOUNDS
 
 
 def turn_data(turn):
@@ -83,6 +85,25 @@ def action_context(action, conversation):
 
 
 @require_POST
+def focus_shop(request, conversation_id):
+    try:
+        data = body(request)
+        shop_id = data.get('shop_id')
+        if not isinstance(shop_id, str) or len(shop_id) > 100:
+            raise ValueError()
+        shop = Shop.objects.get(pk=shop_id, longitude__range=(BOUNDS[0], BOUNDS[2]), latitude__range=(BOUNDS[1], BOUNDS[3]))
+        with transaction.atomic():
+            conversation = Conversation.objects.select_for_update().get(pk=conversation_id, owner_key=owner(request))
+            conversation.state = {**conversation.state, 'selected_shop_id': shop.pk}
+            conversation.save(update_fields=['state', 'updated_at'])
+        return private_response({'shop_id': shop.pk, 'name': shop.name})
+    except (ValueError, TypeError):
+        return private_response({'error': 'فروشگاه انتخاب‌شده کامل نرسید.'}, 400)
+    except (Shop.DoesNotExist, Conversation.DoesNotExist):
+        return private_response({'error': 'فروشگاه یا گفتگو پیدا نشد.'}, 404)
+
+
+@require_POST
 def create_turn(request, conversation_id):
     key = owner(request)
     try:
@@ -106,7 +127,7 @@ def create_turn(request, conversation_id):
             if not text.strip():
                 raise ValueError('یه جمله بنویس تا شروع کنیم.')
             address = SavedAddress.objects.filter(owner_key=key, is_active=True).first()
-            context = {'origin': {'latitude': address.latitude, 'longitude': address.longitude, 'label': address.label} if address else None, 'time': time_context(), 'preferences': dict(conversation.state.get('preferences', {}))}
+            context = {'origin': {'latitude': address.latitude, 'longitude': address.longitude, 'label': address.label} if address else None, 'time': time_context(), 'preferences': dict(conversation.state.get('preferences', {})), 'selected_shop_id': conversation.state.get('selected_shop_id')}
             if action.get('type') == 'set_budget':
                 context['preferences']['max_price'] = action['payload']['amount']
             if action.get('type') == 'filter_credit':

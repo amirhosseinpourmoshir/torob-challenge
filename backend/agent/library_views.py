@@ -1,20 +1,17 @@
 """Session-owned bookmarks and read-only shopping sheets, independent of chat."""
 import json
 from django.db import transaction, connection
-from django.db.models import Min, Count, Q
+from django.db.models import Min, Count, OuterRef, Subquery
 from django.middleware.csrf import get_token
 from django.views.decorators.http import require_GET, require_http_methods
-from catalog.models import Product
+from catalog.models import Product, Shop
 from core.addresses import owner, body
 from core.models import SavedAddress
 from .models import SavedProduct, Conversation
-from .catalog_tools import product_details, find_sellers, eligible_offers
+from .catalog_tools import product_details, find_sellers, eligible_offers, store_products, shop_ui
 from .localization import translated_label
 from .presentation import clean
 from .views import private_response
-from catalog.map_views import BOUNDS
-
-TEHRAN_OFFERS = Q(offers__shop__longitude__range=(BOUNDS[0], BOUNDS[2]), offers__shop__latitude__range=(BOUNDS[1], BOUNDS[3]))
 
 
 def context_for(request):
@@ -26,12 +23,14 @@ def context_for(request):
 
 def product_summary(product):
     images = product.image_urls if isinstance(product.image_urls, list) else []
-    return {'id': product.pk, 'title': product.persian_title or product.model or product.category_id, 'category': translated_label(product.category_id), 'image': images[0] if images else '', 'price': getattr(product, 'lowest', None), 'offerCount': getattr(product, 'offer_count', 0), 'specs': {}}
+    entries = product.specs if isinstance(product.specs, list) else []
+    specs = {translated_label(item['key']): str(item['value'])[:220] for item in entries[:6] if isinstance(item, dict) and item.get('key') and item.get('value') is not None}
+    return {'id': product.pk, 'title': product.persian_title or product.model or product.category_id, 'category': translated_label(product.category_id), 'image': images[0] if images else '', 'price': getattr(product, 'lowest', None), 'offerCount': getattr(product, 'offer_count', 0), 'specs': specs, 'highlights': [f'{key}: {value}' for key, value in list(specs.items())[:2]]}
 
 
 def priced_products(ids, context=None):
-    offers_filter = Q(offers__in=eligible_offers(context).values('pk')) if context is not None else TEHRAN_OFFERS
-    return Product.objects.filter(pk__in=ids).annotate(lowest=Min('offers__price_toman', filter=offers_filter), offer_count=Count('offers__shop_id', distinct=True, filter=offers_filter))
+    stats = eligible_offers(context or {}).filter(product_id=OuterRef('pk')).values('product_id').annotate(low=Min('price_toman'), count=Count('shop_id', distinct=True))
+    return Product.objects.filter(pk__in=ids).annotate(lowest=Subquery(stats.values('low')[:1]), offer_count=Subquery(stats.values('count')[:1]))
 
 
 @require_http_methods(['GET', 'POST'])
@@ -63,6 +62,9 @@ def saved_products(request):
 
 @require_GET
 def product_sheet(request, product_id):
+    section = request.GET.get('section', 'all')
+    if section not in ('all', 'details', 'similar', 'stores'):
+        return private_response({'error': 'بخش انتخاب‌شده معتبر نیست.'}, 400)
     try:
         product = Product.objects.get(pk=product_id)
     except Product.DoesNotExist:
@@ -70,16 +72,35 @@ def product_sheet(request, product_id):
     context = context_for(request)
     details = product_details(context, product_id)['products'][0]
     specs = product.specs if isinstance(product.specs, list) else []
-    specifications = [{'label': translated_label(item.get('key', '')), 'value': str(item.get('value', '')) if not isinstance(item.get('value'), (dict, list)) else json.dumps(item['value'], ensure_ascii=False), 'section': translated_label(item.get('section') or 'مشخصات محصول')} for item in specs if isinstance(item, dict) and item.get('key') and item.get('value') is not None]
-    maximum = details.get('price')
-    similar_offers = eligible_offers(context).filter(product__category_id=product.category_id).exclude(product_id=product_id)
-    candidates = priced_products(similar_offers.values('product_id'), context)
-    if maximum is not None:
-        from django.db.models import F, Value
-        from django.db.models.functions import Abs
-        candidates = candidates.annotate(price_gap=Abs(F('lowest') - Value(maximum))).order_by('price_gap', 'pk')
-    else:
-        candidates = candidates.order_by('lowest', 'pk')
-    shops = find_sellers(context, product_id, limit=8)['shops']
+    specifications = [{'label': translated_label(item.get('key', '')), 'value': str(item.get('value', '')) if not isinstance(item.get('value'), (dict, list)) else json.dumps(item['value'], ensure_ascii=False), 'section': translated_label(item.get('section') or 'مشخصات محصول')} for item in specs if isinstance(item, dict) and item.get('key') and item.get('value') is not None] if section in ('all', 'details') else []
+    similar = []
+    if section in ('all', 'similar'):
+        maximum = details.get('price')
+        candidates = priced_products(Product.objects.filter(category_id=product.category_id).exclude(pk=product_id).values('pk'), context).filter(offer_count__gt=0)
+        if maximum is not None:
+            from django.db.models import F, Value
+            from django.db.models.functions import Abs
+            candidates = candidates.annotate(price_gap=Abs(F('lowest') - Value(maximum))).order_by('price_gap', 'pk')
+        else:
+            candidates = candidates.order_by('lowest', 'pk')
+        similar = [product_summary(row) for row in candidates[:6]]
+    shops = find_sellers(context, product_id, sort='distance' if context.get('origin') else 'price', limit=8)['shops'] if section in ('all', 'stores') else []
     maps = [{'id': shop['id'], 'name': shop['name'], 'address': shop['address'], 'coordinates': shop['_coordinates'], 'category': shop.get('_map_category', 'other'), 'type': shop.get('_map_type', 'فروشگاه'), 'distance_m': shop.get('distanceMeters')} for shop in shops]
-    return private_response({'product': clean(details), 'specifications': specifications, 'similar': [product_summary(row) for row in candidates[:6]], 'offers': [clean(shop) for shop in shops], 'map_shops': maps, 'criteria': context['preferences'], 'similar_basis': 'دستهٔ یکسان و نزدیکی قیمت ثبت‌شده؛ به معنی کیفیت یا امکانات یکسان نیست.'})
+    return private_response({'product': clean(details), 'specifications': specifications, 'similar': similar, 'offers': [clean(shop) for shop in shops], 'map_shops': maps, 'criteria': context['preferences'], 'similar_basis': 'دستهٔ یکسان و نزدیکی قیمت ثبت‌شده؛ به معنی کیفیت یا امکانات یکسان نیست.'})
+
+
+@require_GET
+def shop_sheet(request, shop_id):
+    try:
+        offset = int(request.GET.get('offset', 0))
+        query, category = request.GET.get('q', ''), request.GET.get('category', '')
+        if not 0 <= offset <= 1000 or len(query) > 160 or len(category) > 160:
+            raise ValueError()
+        context = context_for(request)
+        result = store_products(context, shop_id, query, category, limit=6, offset=offset)
+        shop = Shop.objects.prefetch_related('categories', 'payment_options').get(pk=shop_id)
+        return private_response({'shop': clean(shop_ui(shop, context)), 'catalog': result['catalog'], 'products': [clean(product) for product in result['products']], 'note': result['note']})
+    except (ValueError, TypeError):
+        return private_response({'error': 'جست‌وجو یا شمارهٔ صفحه معتبر نیست.'}, 400)
+    except Shop.DoesNotExist:
+        return private_response({'error': 'این فروشگاه پیدا نشد.'}, 404)

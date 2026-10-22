@@ -13,7 +13,7 @@ async function request(url, signal) {
   return data
 }
 
-const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, savedOnly, agentShops = [], onToggleSaved, onClearSaved, onHelp }, ref) {
+const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, savedOnly, agentShops = [], onToggleSaved, onClearSaved, onHelp, onFocusShop, onOpenShop, onOpenSavedShops }, ref) {
   const map = useRef(null)
   const cache = useRef(new Map())
   const searchCache = useRef(new Map())
@@ -45,7 +45,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
   activeRef.current = active
   const cancelSearch = () => { searchVersion.current++; clearTimeout(searchTimer.current); searchController.current?.abort() }
   const closeSearch = () => { cancelSearch(); searchImmediately.current = false; setSearchOpen(false); setSearching(false); setResults(null); setSearchError('') }
-  const select = shop => { closeSearch(); setActive(shop); setRoute(true); map.current?.goTo(shop.coordinates) }
+  const select = shop => { closeSearch(); setActive(shop); setRoute(true); onFocusShop?.(shop); map.current?.goTo(shop.coordinates) }
   const reset = () => { setActive(null); setRoute(false); closeSearch(); map.current?.reset() }
   function search(text = query) {
     cancelSearch(); searchImmediately.current = true; setQuery(text); setSearchOpen(true); setSearchRevision(v => v + 1)
@@ -67,7 +67,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
       setResults(data.shops); setSearching(false)
       if (data.shops.length) {
         const nearest = data.shops[0]
-        setActive(nearest); setRoute(true)
+        setActive(nearest); setRoute(true); onFocusShop?.(nearest)
         if (activeRef.current?.id !== nearest.id || searchImmediately.current) map.current?.goTo(nearest.coordinates)
       } else {
         setActive(null); setRoute(false)
@@ -131,7 +131,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
       {(results !== null || searchError || searching) && <div className="shop-search-results" role="region" aria-label="نتایج جستجوی فروشگاه"><div className="shop-results-heading"><span>{searching ? 'داریم نزدیک‌ترین‌ها رو پیدا می‌کنیم…' : 'نزدیک‌ترین‌ها به تو'}</span><button aria-label="بستن نتایج" onClick={closeSearch}><X size={16}/></button></div>{searchError && <p role="alert">{searchError}</p>}{results?.length === 0 && <p>پیداش نکردیم؛ یه اسم کوتاه‌تر یا یه محلهٔ دیگه رو امتحان کن.</p>}{results?.map((shop, i) => { const ResultIcon = shopTypes[shop.category]?.icon || Store; return <button className="shop-search-result" key={shop.id} onClick={() => select(shop)}><span className="shop-result-icon" style={{ '--shop-color': shopTypes[shop.category]?.color }}><ResultIcon size={19}/></span><span><strong>{shop.name}</strong><small>{i === 0 ? 'نزدیک‌ترین نتیجه · ' : ''}{shop.type}</small></span><span className="shop-result-distance">{distanceLabel(shop.distance_m)}<small>مستقیم</small></span></button> })}</div>}
       </div>
     </div>
-    <div className="category-bar shop-categories">{Object.entries(shopTypes).map(([id, type]) => <button key={id} className={category === id ? 'selected' : ''} aria-pressed={category === id} onClick={() => { setActive(null); setRoute(false); setCategory(id) }}><type.icon size={16}/>{type.name}</button>)}</div>
+    <div className="map-saved-access"><button onClick={onOpenSavedShops}><Bookmark size={16}/>فروشگاه‌های نشان‌شده<span>{saved.length.toLocaleString('fa-IR')}</span></button><small>هر نشانک، یک انتخاب نزدیک‌تر</small></div><div className="category-bar shop-categories">{Object.entries(shopTypes).map(([id, type]) => <button key={id} className={category === id ? 'selected' : ''} aria-pressed={category === id} onClick={() => { setActive(null); setRoute(false); setCategory(id) }}><type.icon size={16}/>{type.name}</button>)}</div>
     {savedOnly && <div className="shop-saved-banner"><Bookmark size={15}/>فقط ذخیره‌شده‌ها <button onClick={onClearSaved}>نمایش همه <X size={13}/></button></div>}
     <div className="map-viewport geographic-viewport shop-map-viewport">
       <TehranMap ref={map} shops={shown} activeShop={active} selected={active?.id} route={route} theme={theme} origin={origin} onViewport={setView} onVisibleCount={setMarkerCount} onSelect={id => { const shop = active?.id === id ? active : shown.find(s => s.id === id); if (shop) select(shop) }}/>
@@ -141,7 +141,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
       {!active && limited && !loading && <div className="shop-density-hint">نزدیک‌تر شو، بیشتر ببین <Plus size={13}/></div>}
       {active && <article className="shop-detail" key={active.id} aria-label={`اطلاعات ${active.name}`}><div className="shop-detail-head"><span className="shop-detail-icon" style={{ '--shop-color': shopTypes[active.category]?.color }}><Icon size={25}/></span><div><small>{active.type}</small><h3>{active.name}</h3></div><button className={`shop-detail-save ${saved.some(s => s.id === active.id) ? 'is-saved' : ''}`} aria-label={saved.some(s => s.id === active.id) ? 'حذف از ذخیره‌ها' : 'ذخیره فروشگاه'} aria-pressed={saved.some(s => s.id === active.id)} onClick={() => onToggleSaved(active)}><Bookmark size={21} fill={saved.some(s => s.id === active.id) ? 'currentColor' : 'none'}/></button><button aria-label="بستن اطلاعات فروشگاه" onClick={() => { setActive(null); setRoute(false) }}><X size={19}/></button></div>
         <div className="map-trip-summary"><LocateFixed size={16}/><span>آدرس انتخابی تو</span><ChevronLeft size={15}/><Store size={16}/><span>{active.name}</span></div><p className="shop-detail-address"><MapPin size={15}/>{active.address || 'جاش رو روی نقشه ببین.'}</p><div className="shop-distance-row"><span><Navigation size={18}/><strong>{distanceLabel(active.distance_m)}</strong><small>فاصلهٔ مستقیم تا آدرس تو</small></span><button onClick={() => setRoute(v => !v)} aria-pressed={route}>{route ? <Check size={16}/> : <Navigation size={16}/>}نمایش فاصله</button></div>
-        <div className="map-trip-actions"><button onClick={() => { setRoute(true); map.current?.showTrip(active.coordinates) }} disabled={!origin}><LocateFixed size={16}/>مبدأ و فروشگاه با هم</button><a href={`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${origin ? `${origin[1]},${origin[0]};` : ''}${active.coordinates[1]},${active.coordinates[0]}`} target="_blank" rel="noopener noreferrer"><Navigation size={16}/>مسیریابی خیابانی<ArrowUpLeft size={14}/></a></div>
+        <div className="map-trip-actions"><button onClick={() => onOpenShop?.(active)}><Store size={16}/>محصولات این فروشگاه</button><button onClick={() => { setRoute(true); map.current?.showTrip(active.coordinates) }} disabled={!origin}><LocateFixed size={16}/>مبدأ و فروشگاه با هم</button><a href={`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${origin ? `${origin[1]},${origin[0]};` : ''}${active.coordinates[1]},${active.coordinates[0]}`} target="_blank" rel="noopener noreferrer"><Navigation size={16}/>مسیریابی خیابانی<ArrowUpLeft size={14}/></a></div>
       </article>}
     </div>
     <div className="map-footer"><span><span className="online-dot"/> اطراف تو، روی نقشه</span><button onClick={onHelp}>راهنمای نقشه <ChevronLeft size={13}/></button></div>
