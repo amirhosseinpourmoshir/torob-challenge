@@ -548,6 +548,14 @@
                   "type": "string",
                   "format": "date-time",
                   "maxLength": 40
+                },
+                "instagramUrl": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "websiteUrl": {
+                  "type": "string",
+                  "maxLength": 2000
                 }
               },
               "required": [
@@ -655,6 +663,14 @@
                     "type": "string",
                     "format": "date-time",
                     "maxLength": 40
+                  },
+                  "instagramUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "websiteUrl": {
+                    "type": "string",
+                    "maxLength": 2000
                   }
                 },
                 "required": [
@@ -1441,6 +1457,23 @@
         "props": {
           "type": "object",
           "properties": {
+            "shopId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "draft": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "instagramUrl": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "websiteUrl": {
+              "type": "string",
+              "maxLength": 2000
+            },
             "shopName": {
               "type": "string",
               "maxLength": 2000
@@ -1944,6 +1977,14 @@
                     "type": "string",
                     "format": "date-time",
                     "maxLength": 40
+                  },
+                  "instagramUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "websiteUrl": {
+                    "type": "string",
+                    "maxLength": 2000
                   }
                 },
                 "required": [

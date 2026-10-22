@@ -22,7 +22,7 @@ CSRF_TRUSTED_ORIGINS = csv_env("DJANGO_CSRF_TRUSTED_ORIGINS")
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
-    "django.contrib.postgres", "core", "catalog",
+    "django.contrib.postgres", "core", "catalog", "agent",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -78,3 +78,6 @@ AI = {
 }
 PANEL_ADMIN_USERNAME = os.getenv('PANEL_ADMIN_USERNAME', '')
 PANEL_ADMIN_PASSWORD = os.getenv('PANEL_ADMIN_PASSWORD', '')
+AGENT_MAX_ROUNDS = 5
+AGENT_MAX_TOOLS = 12
+AGENT_OUTPUT_TOKENS = 2400

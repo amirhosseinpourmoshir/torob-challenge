@@ -10,7 +10,7 @@ const image = obj({ src: str, alt: str }, ['src'])
 const date = { type: 'string', format: 'date', maxLength: 10 }
 const timestamp = { type: 'string', format: 'date-time', maxLength: 40 }
 const product = obj({ id, title: str, subtitle: str, category: str, image: str, price: amount, originalPrice: amount, badge: str, highlights: list(str, 8), offerCount: { type: 'integer', minimum: 0 }, specs: { type: 'object', additionalProperties: { type: ['string', 'number', 'boolean', 'null'] } } }, ['id', 'title'])
-const seller = obj({ id, name: str, neighborhood: str, address: str, insideAddress: str, price: amount, distanceMeters: amount, distanceKind: { enum: ['route', 'straight_line'] }, availability: { enum: ['confirmed', 'unavailable', 'unverified'] }, hoursLabel: str, credit: bool, updatedAt: timestamp }, ['id', 'name'])
+const seller = obj({ id, name: str, neighborhood: str, address: str, insideAddress: str, price: amount, distanceMeters: amount, distanceKind: { enum: ['route', 'straight_line'] }, availability: { enum: ['confirmed', 'unavailable', 'unverified'] }, hoursLabel: str, credit: bool, updatedAt: timestamp, instagramUrl: str, websiteUrl: str }, ['id', 'name'])
 export const widgetPropsSchemas = {
   product: obj({ product, selected: bool }, ['product']),
   product_list: obj({ products: list(product, 8) }, ['products']),
@@ -27,7 +27,7 @@ export const widgetPropsSchemas = {
   progress: obj({ title: str, steps: list(obj({ id, label: str, detail: str, status: { enum: ['pending', 'running', 'done', 'failed', 'waiting'] }, durationMs: { type: 'number', minimum: 0 } }, ['id', 'label', 'status']), 12) }, ['steps']),
   receipt: obj({ title: str, summary: str, status: { enum: ['done', 'failed', 'waiting'] }, facts: list(obj({ label: str, value: str }, ['label', 'value']), 12) }),
   confirmation: obj({ title: str, description: str, confirmLabel: str, cancelLabel: str, actionId: id }, ['actionId', 'description']),
-  contact: obj({ shopName: str, questions: list(str, 8), channel: { enum: ['message', 'phone'] } }, ['shopName']),
+  contact: obj({ shopId: id, draft: str, instagramUrl: str, websiteUrl: str, shopName: str, questions: list(str, 8), channel: { enum: ['message', 'phone'] } }, ['shopName']),
   checklist: obj({ title: str, items: list(obj({ id, label: str, done: bool }, ['id', 'label']), 20) }, ['items']),
   itinerary: obj({ stops: list(obj({ id, name: str, address: str, time: str }, ['id', 'name']), 8), totalDistanceMeters: amount, durationMinutes: amount }, ['stops']),
   calendar: obj({ selectedDate: date, minDate: date, maxDate: date }),

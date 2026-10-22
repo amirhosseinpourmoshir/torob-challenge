@@ -1,0 +1,2228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Torob Agent UI v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "product"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "product": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "subtitle": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "category": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "image": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "price": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "originalPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "badge": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "highlights": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "maxItems": 8
+                },
+                "offerCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "specs": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "selected": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "product"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "product_list"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "products": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "subtitle": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "category": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "image": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "price": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "originalPrice": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "badge": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "highlights": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "maxItems": 8
+                  },
+                  "offerCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "specs": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "title"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            }
+          },
+          "required": [
+            "products"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "recommendation"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "product": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "subtitle": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "category": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "image": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "price": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "originalPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "badge": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "highlights": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "maxItems": 8
+                },
+                "offerCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "specs": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "maxItems": 6
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "product"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "comparison"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "products": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "subtitle": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "category": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "image": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "price": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "originalPrice": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "badge": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "highlights": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "maxItems": 8
+                  },
+                  "offerCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "specs": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "title"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 4
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "bestId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "key",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 12
+            }
+          },
+          "required": [
+            "products"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "seller"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "seller": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "neighborhood": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "address": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "insideAddress": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "price": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "distanceMeters": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "distanceKind": {
+                  "enum": [
+                    "route",
+                    "straight_line"
+                  ]
+                },
+                "availability": {
+                  "enum": [
+                    "confirmed",
+                    "unavailable",
+                    "unverified"
+                  ]
+                },
+                "hoursLabel": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "credit": {
+                  "type": "boolean"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "maxLength": 40
+                },
+                "instagramUrl": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "websiteUrl": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "compact": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "seller"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "offers"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "offers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "neighborhood": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "address": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "insideAddress": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "price": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "distanceMeters": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "distanceKind": {
+                    "enum": [
+                      "route",
+                      "straight_line"
+                    ]
+                  },
+                  "availability": {
+                    "enum": [
+                      "confirmed",
+                      "unavailable",
+                      "unverified"
+                    ]
+                  },
+                  "hoursLabel": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "credit": {
+                    "type": "boolean"
+                  },
+                  "updatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "maxLength": 40
+                  },
+                  "instagramUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "websiteUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 15
+            }
+          },
+          "required": [
+            "offers"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "deal"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "product": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "subtitle": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "category": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "image": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "price": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "originalPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "badge": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "highlights": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "maxItems": 8
+                },
+                "offerCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "specs": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time",
+              "maxLength": 40
+            }
+          },
+          "required": [
+            "product"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "installment"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "price": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "downPayment": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "months": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 120
+            },
+            "totalPayable": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "provider": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "price",
+            "totalPayable"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "alternative"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "product": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "subtitle": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "category": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "image": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "price": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "originalPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "badge": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "highlights": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "maxItems": 8
+                },
+                "offerCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "specs": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "reason",
+            "product"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "budget"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max": {
+              "type": "number",
+              "minimum": 1
+            },
+            "step": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "value": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "preferences"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 12
+            },
+            "selected": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "maxItems": 12
+            },
+            "multiple": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "options"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "clarification"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "questionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "question": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            },
+            "multiple": {
+              "type": "boolean"
+            },
+            "allowOther": {
+              "type": "boolean"
+            },
+            "presentation": {
+              "enum": [
+                "inline",
+                "popup"
+              ]
+            }
+          },
+          "required": [
+            "question",
+            "options"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "quick_replies"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            }
+          },
+          "required": [
+            "options"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "progress"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "detail": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "status": {
+                    "enum": [
+                      "pending",
+                      "running",
+                      "done",
+                      "failed",
+                      "waiting"
+                    ]
+                  },
+                  "durationMs": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "status"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 12
+            }
+          },
+          "required": [
+            "steps"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "receipt"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "summary": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "status": {
+              "enum": [
+                "done",
+                "failed",
+                "waiting"
+              ]
+            },
+            "facts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "value": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "label",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 12
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "confirmation"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "confirmLabel": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "cancelLabel": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "required": [
+            "actionId",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "contact"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "shopId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "draft": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "instagramUrl": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "websiteUrl": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "shopName": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "questions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "maxItems": 8
+            },
+            "channel": {
+              "enum": [
+                "message",
+                "phone"
+              ]
+            }
+          },
+          "required": [
+            "shopName"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "checklist"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "done": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "itinerary"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "stops": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "address": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "time": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            },
+            "totalDistanceMeters": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "durationMinutes": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          },
+          "required": [
+            "stops"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "calendar"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "selectedDate": {
+              "type": "string",
+              "format": "date",
+              "maxLength": 10
+            },
+            "minDate": {
+              "type": "string",
+              "format": "date",
+              "maxLength": 10
+            },
+            "maxDate": {
+              "type": "string",
+              "format": "date",
+              "maxLength": 10
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "clock"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "showSeconds": {
+              "type": "boolean"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "visit"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "format": "date",
+              "maxLength": 10
+            },
+            "slots": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "date"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "gallery"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "src": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "alt": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "src"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 12
+            }
+          },
+          "required": [
+            "images"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "price_history"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "maxLength": 40
+                  },
+                  "price": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "date",
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 365
+            }
+          },
+          "required": [
+            "points"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "price_comparison"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "offers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "neighborhood": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "address": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "insideAddress": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "price": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "distanceMeters": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "distanceKind": {
+                    "enum": [
+                      "route",
+                      "straight_line"
+                    ]
+                  },
+                  "availability": {
+                    "enum": [
+                      "confirmed",
+                      "unavailable",
+                      "unverified"
+                    ]
+                  },
+                  "hoursLabel": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "credit": {
+                    "type": "boolean"
+                  },
+                  "updatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "maxLength": 40
+                  },
+                  "instagramUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "websiteUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            }
+          },
+          "required": [
+            "offers"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "fit_score"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "scores": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "label",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "scores"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "empty"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "loading"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "error"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "const": "source"
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "maxLength": 40
+            },
+            "status": {
+              "enum": [
+                "confirmed",
+                "unverified"
+              ]
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "type",
+        "props"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

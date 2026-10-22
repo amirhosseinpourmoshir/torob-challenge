@@ -13,7 +13,7 @@ async function request(url, signal) {
   return data
 }
 
-const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, savedOnly, onToggleSaved, onClearSaved, onHelp }, ref) {
+const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, savedOnly, agentShops = [], onToggleSaved, onClearSaved, onHelp }, ref) {
   const map = useRef(null)
   const cache = useRef(new Map())
   const searchCache = useRef(new Map())
@@ -93,7 +93,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
     }, searchImmediately.current ? 0 : 220)
     return cancelSearch
   }, [query, searchOpen, composing, category, savedOnly, savedIds, origin, searchRevision])
-  useImperativeHandle(ref, () => ({ reset, search: value => { search(value); searchBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }))
+  useImperativeHandle(ref, () => ({ reset, showShops: rows => { if (rows?.length) { setCategory('all'); select(rows[0]) } }, search: value => { search(value); searchBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }))
 
   useEffect(() => {
     if (!view || view.zoom < MIN_ZOOM) { setShops([]); setLoading(false); setError(''); return }
@@ -120,7 +120,9 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
   useEffect(() => () => cancelSearch(), [])
   useEffect(() => { const escape = e => { if (e.key === 'Escape') { setExpanded(false); closeSearch() } }; window.addEventListener('keydown', escape); return () => window.removeEventListener('keydown', escape) }, [])
   const zoomedOut = view && view.zoom < MIN_ZOOM
-  const shown = !zoomedOut && active && view && active.coordinates[0] >= view.west && active.coordinates[0] <= view.east && active.coordinates[1] >= view.south && active.coordinates[1] <= view.north && !shops.some(s => s.id === active.id) ? [...shops.slice(0, 71), active] : shops
+  const candidates = [...shops]
+  if (!zoomedOut && view && category === 'all' && !savedOnly) { for (const row of agentShops) { if (!candidates.some(s => s.id === row.id) && row.coordinates[0] >= view.west && row.coordinates[0] <= view.east && row.coordinates[1] >= view.south && row.coordinates[1] <= view.north) candidates.unshift(row) } }
+  const shown = !zoomedOut && active && view && active.coordinates[0] >= view.west && active.coordinates[0] <= view.east && active.coordinates[1] >= view.south && active.coordinates[1] <= view.north && !candidates.some(s => s.id === active.id) ? [...candidates.slice(0, 71), active] : candidates.slice(0, 72)
   const Icon = shopTypes[active?.category]?.icon || Store
   return <section className={`explore-panel shop-explorer ${expanded ? 'expanded-map' : ''}`} aria-label="نقشه فروشگاه‌ها">
     <div className="map-topbar"><div className="map-title"><span className="map-icon"><MapPin size={21}/></span><div><h2>{savedOnly ? 'انتخاب‌های ذخیره‌شده' : 'کشف کن، همین نزدیکی'}</h2><p>یه جای خوب برای خرید، همین دور و بر</p></div></div>

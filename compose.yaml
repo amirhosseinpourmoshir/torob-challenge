@@ -37,6 +37,20 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+  agentworker:
+    build: ./backend
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    command: python manage.py agent_worker
+    volumes:
+      - ./backend:/app
+      - ./dataset:/dataset:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
   frontend:
     build: ./frontend
     environment:
