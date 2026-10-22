@@ -127,7 +127,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
         }
         // Required source credits are rendered below in Persian with original links.
         for (const source of Object.values(style.sources)) if ('attribution' in source) source.attribution = ''
-        m = new Map({ container: container.current, style, ...HOME, ...(pickMode ? { center: initialPoint.current || HOME.center, zoom: 15.5, pitch: 0, bearing: 0 } : {}), maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, scrollZoom: false, cooperativeGestures: true, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران', 'CooperativeGesturesHandler.WindowsHelpText': 'برای زوم از دکمه‌های نقشه استفاده کن', 'CooperativeGesturesHandler.MacHelpText': 'برای زوم از دکمه‌های نقشه استفاده کن', 'CooperativeGesturesHandler.MobileHelpText': 'نقشه را با دو انگشت جابه‌جا کن' } })
+        m = new Map({ container: container.current, style, ...HOME, ...(pickMode ? { center: initialPoint.current || HOME.center, zoom: 15.5, pitch: 0, bearing: 0 } : {}), maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, scrollZoom: true, cooperativeGestures: window.matchMedia('(pointer: coarse)').matches, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران', 'CooperativeGesturesHandler.WindowsHelpText': 'برای زوم با چرخ ماوس، کلید کنترل را نگه دار', 'CooperativeGesturesHandler.MacHelpText': 'برای زوم با چرخ ماوس، کلید فرمان را نگه دار', 'CooperativeGesturesHandler.MobileHelpText': 'نقشه را با دو انگشت جابه‌جا کن' } })
         instance.current = m
         setMap(m)
         const publishViewport = () => {
