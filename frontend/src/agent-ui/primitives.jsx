@@ -33,7 +33,7 @@ export function AgentDialog({ open, onClose, title, children, className = '' }) 
       if (event.key === 'Tab') { const list = controls(), first = list[0], last = list.at(-1); if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() } }
     }
     document.addEventListener('keydown', key)
-    return () => { document.removeEventListener('keydown', key); document.body.style.overflow = previousOverflow; previous?.focus() }
+      return () => { document.removeEventListener('keydown', key); document.body.style.overflow = previousOverflow; previous?.focus({ preventScroll: true }) }
   }, [open])
   if (!open) return null
   return createPortal(<div className="agent-ui au-overlay" dir="rtl" onClick={e => { if (e.target === e.currentTarget) onClose?.() }}><section ref={ref} className={`au-dialog ${className}`} role="dialog" aria-modal="true" aria-labelledby={id}><header><h2 id={id}>{title}</h2><button className="au-icon-button" aria-label="بستن پنجره" onClick={onClose}><X size={21}/></button></header>{children}</section></div>, document.body)

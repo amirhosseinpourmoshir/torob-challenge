@@ -112,6 +112,47 @@ class AgentCatalogTests(TestCase):
         self.assertEqual(len(turn.response['widgets'][0]['props']['offers']), 4)
         self.assertEqual(turn.usage, {})
 
+    def test_saved_products_are_private_idempotent_and_survive_clearing_chat(self):
+        client = Client(enforce_csrf_checks=True)
+        initial = client.get('/api/agent/saved-products/').json()
+        payload = json.dumps({'product_id': 'p-main', 'saved': True})
+        self.assertEqual(client.post('/api/agent/saved-products/', data=payload, content_type='application/json').status_code, 403)
+        for _ in range(2):
+            response = client.post('/api/agent/saved-products/', data=payload, content_type='application/json', HTTP_X_CSRFTOKEN=initial['csrf_token'])
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.json()['products']), 1)
+        self.assertEqual(Client().get('/api/agent/saved-products/').json()['products'], [])
+        conversation = client.get('/api/agent/conversations/').json()
+        response = client.delete(f"/api/agent/conversations/{conversation['id']}/", HTTP_X_CSRFTOKEN=conversation['csrf_token'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(client.get('/api/agent/saved-products/').json()['products']), 1)
+        response = client.post('/api/agent/saved-products/', data=json.dumps({'product_id': 'p-main', 'saved': False}), content_type='application/json', HTTP_X_CSRFTOKEN=initial['csrf_token'])
+        self.assertEqual(response.json()['products'], [])
+
+    def test_product_sheet_has_complete_specs_and_only_same_category_similar_choices(self):
+        product = self.product
+        product.specs = [{'key': f'ویژگی {index}', 'value': f'مقدار {index}', 'section': 'مشخصات فنی'} for index in range(55)]
+        product.save()
+        peer = Product.objects.create(id='p-peer', persian_title='هدفون مشابه', category=product.category, search_text='هدفون مشابه', source_data={}, dataset_import=product.dataset_import)
+        Offer.objects.create(id='o-peer', product=peer, shop_id='s-0', price_toman=120, source_data={}, dataset_import=product.dataset_import)
+        response = self.client.get('/api/agent/products/p-main/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['specifications']), 55)
+        self.assertEqual([row['id'] for row in data['similar']], ['p-peer'])
+        self.assertEqual(len(data['map_shops']), 4)
+        self.assertNotIn('_coordinates', data['offers'][0])
+
+    def test_product_sheet_keeps_current_conversation_credit_constraints(self):
+        initial = self.client.get('/api/agent/conversations/').json()
+        conversation = Conversation.objects.get(pk=initial['id'])
+        conversation.state = {'preferences': {'credit_only': True, 'provider': 'الف'}}
+        conversation.save()
+        data = self.client.get('/api/agent/products/p-main/').json()
+        self.assertEqual([row['id'] for row in data['offers']], ['s-1'])
+        self.assertEqual(data['product']['price'], 300)
+        self.assertTrue(data['criteria']['credit_only'])
+
     def test_recovery_resumes_completed_model_step_without_paying_for_it_again(self):
         conversation = Conversation.objects.create(owner_key=uuid.uuid4())
         state = {'messages': [], 'context': self.context, 'evidence': {}, 'answer': {'text': 'نیازت رو بگو.', 'blocks': []}, 'pending': [], 'model': 'gpt-6-luna'}
@@ -176,6 +217,16 @@ class AgentApiTests(TestCase):
         AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), status='done', action=action, text='internal product_internal')
         response = self.client.get('/api/agent/conversations/').json()
         self.assertEqual(response['turns'][0]['action'], action)
+
+    def test_clearing_a_queued_turn_is_allowed_and_cannot_resurrect_the_chat(self):
+        conversation = Conversation.objects.get(pk=self.conversation['id'])
+        turn = AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), text='در صف', context={'preferences': {}})
+        response = self.client.delete(f'/api/agent/conversations/{conversation.pk}/', **self.headers)
+        self.assertEqual(response.status_code, 200)
+        with patch('agent.graph.chat', side_effect=AssertionError('cancelled turn must not call provider')):
+            execute_turn(turn)
+        self.assertFalse(Conversation.objects.filter(pk=conversation.pk).exists())
+        self.assertFalse(AgentTurn.objects.filter(pk=turn.pk).exists())
 
     def test_knowledge_panel_requires_superuser_and_queues_only_one_job(self):
         self.assertEqual(self.client.get('/api/agent/knowledge/').status_code, 403)

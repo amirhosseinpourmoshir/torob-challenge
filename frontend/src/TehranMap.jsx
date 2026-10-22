@@ -81,6 +81,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
     zoomOut: () => instance.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 }),
     reset: () => instance.current?.flyTo({ ...HOME, ...(originRef.current ? { center: originRef.current, zoom: 14.8 } : {}), duration: reducedMotion() ? 0 : 900 }),
     goTo: point => { instance.current?.flyTo({ center: point, zoom: pickMode ? 16 : 16.6, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
+      showTrip: point => { const m = instance.current, start = originRef.current; if (!m || !start) return; m.fitBounds([[Math.min(start[0], point[0]), Math.min(start[1], point[1])], [Math.max(start[0], point[0]), Math.max(start[1], point[1])]], { padding: { top: 90, bottom: 220, left: 55, right: 55 }, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
     pickCenter: () => { const point = instance.current?.getCenter(); if (point && pickMode) pickRef.current?.([point.lng, point.lat]) },
     togglePitch: () => { const m = instance.current; if (m) m.easeTo({ pitch: m.getPitch() > 10 ? 0 : 50, bearing: m.getPitch() > 10 ? 0 : -12, duration: reducedMotion() ? 0 : 650 }) },
   }), [])
@@ -161,7 +162,9 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   useEffect(() => { if (map && loaded && origin && !pickMode) map.flyTo({ center: origin, zoom: 14.8, duration: reducedMotion() ? 0 : 700 }) }, [origin, map, loaded, pickMode])
   const occupied = []
   const labels = []
-  const markers = map && loaded && zoom >= 14 ? [...shops].sort((a, b) => Number(b.id === selected) - Number(a.id === selected)).filter(shop => {
+  const markerCandidates = [...(zoom >= 14 ? shops : [])]
+  if (activeShop && !markerCandidates.some(shop => shop.id === activeShop.id)) markerCandidates.unshift(activeShop)
+  const markers = map && loaded ? markerCandidates.sort((a, b) => Number(b.id === selected) - Number(a.id === selected)).filter(shop => {
     const point = map.project(shop.coordinates)
     if (point.x < 0 || point.y < 0 || point.x > map.getContainer().clientWidth || point.y > map.getContainer().clientHeight) return false
     if (occupied.some(p => Math.abs(p.x - point.x) < 45 && Math.abs(p.y - point.y) < 47)) return false
@@ -177,7 +180,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   useEffect(() => { onVisibleCount?.(markers.length) }, [markers.length, onVisibleCount])
   return <>
     <div ref={container} className="geographic-map" role="region" aria-label="نقشه تعاملی تهران"/>
-    {markers.map(shop => { const type = shopTypes[shop.category] || shopTypes.other; const Icon = type.icon; return <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`live-shop-marker ${selected === shop.id ? 'is-active' : ''} ${zoom >= 16.2 ? 'with-name' : ''}`}><button style={{ '--shop-color': type.color }} onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`} aria-pressed={selected === shop.id} title={`${shop.name} · ${shop.type}`}><span className="live-marker-icon"><Icon size={17} strokeWidth={1.9}/></span>{zoom >= 16.2 && namedIds.has(shop.id) && <span className="live-marker-name">{shop.name}</span>}</button></MapMarker> })}
+    {markers.map(shop => { const type = shopTypes[shop.category] || shopTypes.other; const Icon = type.icon; return <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`live-shop-marker ${selected === shop.id ? 'is-active' : ''} ${zoom >= 16.2 || selected === shop.id ? 'with-name' : ''}`}><button style={{ '--shop-color': type.color }} onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`} aria-pressed={selected === shop.id} title={`${shop.name} · ${shop.type}`}><span className="live-marker-icon"><Icon size={17} strokeWidth={1.9}/></span>{(zoom >= 16.2 || selected === shop.id) && namedIds.has(shop.id) && <span className="live-marker-name">{shop.name}</span>}</button></MapMarker> })}
     {map && !pickMode && origin && <MapMarker map={map} coordinates={origin} className="geo-start-marker"><span>آدرس انتخابی تو</span><i/></MapMarker>}
     <div className="persian-map-scale"><span/>{scale}</div>
     <div className="persian-map-attribution"><span>© </span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">مشارکت‌کنندگان اوپن‌استریت‌مپ</a><span> · </span><a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">اوپن‌مپ‌تایلز</a></div>

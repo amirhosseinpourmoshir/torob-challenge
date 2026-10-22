@@ -64,3 +64,13 @@ class KnowledgeJob(models.Model):
 class WorkerHeartbeat(models.Model):
     id = models.CharField(max_length=100, primary_key=True)
     seen_at = models.DateTimeField()
+
+
+class SavedProduct(models.Model):
+    owner_key = models.UUIDField(db_index=True)
+    product = models.ForeignKey('catalog.Product', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['owner_key', 'product'], name='unique_saved_product_owner')]

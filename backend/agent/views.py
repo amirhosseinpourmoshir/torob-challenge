@@ -43,8 +43,6 @@ def clear_conversation(request, conversation_id):
         conversation = Conversation.objects.select_for_update().filter(pk=conversation_id, owner_key=key).first()
         if not conversation:
             return private_response({'error': 'گفتگو پیدا نشد.'}, 404)
-        if conversation.turns.filter(status__in=['queued', 'running']).exists():
-            return private_response({'error': 'بعد از دریافت پاسخ، گفتگو رو پاک کن.'}, 409)
         conversation.delete()
         fresh = Conversation.objects.create(owner_key=key)
     return private_response(conversation_data(fresh, request))

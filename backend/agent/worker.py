@@ -8,6 +8,10 @@ from django.utils import timezone
 from .models import AgentTurn, Conversation, KnowledgeJob, LocalizedTerm, WorkerHeartbeat
 
 
+class TurnCancelled(Exception):
+    pass
+
+
 def heartbeat():
     WorkerHeartbeat.objects.update_or_create(pk=f'{socket.gethostname()}-{os.getpid()}', defaults={'seen_at': timezone.now()})
 
@@ -51,7 +55,8 @@ def execute_turn(turn):
         if duration_ms is not None:
             event['durationMs'] = duration_ms
         events.append(event)
-        AgentTurn.objects.filter(pk=turn.pk).update(events=events[-30:], lease_until=timezone.now() + timedelta(minutes=3))
+        if not AgentTurn.objects.filter(pk=turn.pk).update(events=events[-30:], lease_until=timezone.now() + timedelta(minutes=3)):
+            raise TurnCancelled()
         heartbeat()
     try:
         if turn.action and not state.get('answer') and not state.get('pending'):
@@ -75,6 +80,8 @@ def execute_turn(turn):
             conversation.state = {'messages': state['messages'], 'evidence': state.get('evidence', {}), 'preferences': state['context'].get('preferences', {})}
             conversation.save(update_fields=['state', 'updated_at'])
             AgentTurn.objects.filter(pk=turn.pk).update(status='done', response=state['response'], error='', checkpoint={}, lease_until=None, updated_at=timezone.now())
+    except (TurnCancelled, Conversation.DoesNotExist):
+        return
     except ProviderError as error:
         AgentTurn.objects.filter(pk=turn.pk).update(status='failed', error=str(error), lease_until=None, updated_at=timezone.now())
     except Exception:
