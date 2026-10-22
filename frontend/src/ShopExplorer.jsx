@@ -41,12 +41,13 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
   const [retry, setRetry] = useState(0)
   const [expanded, setExpanded] = useState(false)
   const [route, setRoute] = useState(false)
+  const [highlighted, setHighlighted] = useState([])
   const savedIds = saved.map(s => s.id).sort().join(',')
   activeRef.current = active
   const cancelSearch = () => { searchVersion.current++; clearTimeout(searchTimer.current); searchController.current?.abort() }
   const closeSearch = () => { cancelSearch(); searchImmediately.current = false; setSearchOpen(false); setSearching(false); setResults(null); setSearchError('') }
   const select = shop => { closeSearch(); setActive(shop); setRoute(true); onFocusShop?.(shop); map.current?.goTo(shop.coordinates) }
-  const reset = () => { setActive(null); setRoute(false); closeSearch(); map.current?.reset() }
+  const reset = () => { setHighlighted([]); setActive(null); setRoute(false); closeSearch(); map.current?.reset() }
   function search(text = query) {
     cancelSearch(); searchImmediately.current = true; setQuery(text); setSearchOpen(true); setSearchRevision(v => v + 1)
   }
@@ -94,7 +95,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
     }, searchImmediately.current ? 0 : 220)
     return cancelSearch
   }, [query, searchOpen, composing, category, savedOnly, savedIds, origin, searchRevision])
-  useImperativeHandle(ref, () => ({ reset, showShops: rows => { if (rows?.length) { setCategory('all'); select(rows[0]) } else { setActive(null); setRoute(false) } }, search: value => { search(value); searchBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }))
+  useImperativeHandle(ref, () => ({ reset, showShops: rows => { setHighlighted(rows || []); setCategory('all'); closeSearch(); if (rows?.length === 1) select(rows[0]); else { setActive(null); setRoute(false); if (rows?.length) map.current?.showPoints(rows.map(row => row.coordinates)) } }, search: value => { search(value); searchBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }))
 
   useEffect(() => {
     if (!view || view.zoom < MIN_ZOOM) { setShops([]); setLoading(false); setError(''); return }
@@ -126,6 +127,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
   const shown = !zoomedOut && active && view && active.coordinates[0] >= view.west && active.coordinates[0] <= view.east && active.coordinates[1] >= view.south && active.coordinates[1] <= view.north && !candidates.some(s => s.id === active.id) ? [...candidates.slice(0, 71), active] : candidates.slice(0, 72)
   const Icon = shopTypes[active?.category]?.icon || Store
   return <section className={`explore-panel shop-explorer ${expanded ? 'expanded-map' : ''}`} aria-label="نقشه فروشگاه‌ها">
+    {highlighted.length > 1 && <div className="map-result-selection" aria-label="فروشگاه‌های این پیشنهاد"><strong>فروشگاه‌های این پیشنهاد</strong><div>{highlighted.map(shop => <button key={shop.id} aria-pressed={active?.id === shop.id} onClick={() => select(shop)}><MapPin size={15}/>{shop.name}</button>)}</div></div>}
     <div className="map-topbar"><div className="map-title"><span className="map-icon"><MapPin size={21}/></span><div><h2>{savedOnly ? 'انتخاب‌های ذخیره‌شده' : 'کشف کن، همین نزدیکی'}</h2><p>یه جای خوب برای خرید، همین دور و بر</p></div></div>
       <div className="shop-search-wrap" ref={searchBox}><form className="map-search" onSubmit={e => { e.preventDefault(); search() }}><Search size={18}/><input value={query} maxLength={120} onCompositionStart={() => setComposing(true)} onCompositionEnd={e => { setComposing(false); setQuery(e.target.value) }} onFocus={() => { if (query.trim().length >= 2) setSearchOpen(true) }} onChange={e => { cancelSearch(); searchImmediately.current = false; setQuery(e.target.value); setSearchOpen(true) }} placeholder="نام فروشگاه، دسته یا محله…" aria-label="جستجوی فروشگاه"/>{query && <button type="button" aria-label="پاک کردن جستجو" onClick={() => { setQuery(''); closeSearch() }}><X size={16}/></button>}<button className="shop-search-submit" type="submit" aria-label="یافتن نزدیک‌ترین فروشگاه" disabled={searching}>{searching ? <RefreshCw className="shop-spinning" size={18}/> : <ArrowUpLeft size={18}/>}</button></form>
       {(results !== null || searchError || searching) && <div className="shop-search-results" role="region" aria-label="نتایج جستجوی فروشگاه"><div className="shop-results-heading"><span>{searching ? 'داریم نزدیک‌ترین‌ها رو پیدا می‌کنیم…' : 'نزدیک‌ترین‌ها به تو'}</span><button aria-label="بستن نتایج" onClick={closeSearch}><X size={16}/></button></div>{searchError && <p role="alert">{searchError}</p>}{results?.length === 0 && <p>پیداش نکردیم؛ یه اسم کوتاه‌تر یا یه محلهٔ دیگه رو امتحان کن.</p>}{results?.map((shop, i) => { const ResultIcon = shopTypes[shop.category]?.icon || Store; return <button className="shop-search-result" key={shop.id} onClick={() => select(shop)}><span className="shop-result-icon" style={{ '--shop-color': shopTypes[shop.category]?.color }}><ResultIcon size={19}/></span><span><strong>{shop.name}</strong><small>{i === 0 ? 'نزدیک‌ترین نتیجه · ' : ''}{shop.type}</small></span><span className="shop-result-distance">{distanceLabel(shop.distance_m)}<small>مستقیم</small></span></button> })}</div>}
@@ -134,7 +136,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
     <div className="category-bar shop-categories">{Object.entries(shopTypes).map(([id, type]) => <button key={id} className={category === id ? 'selected' : ''} aria-pressed={category === id} onClick={() => { setActive(null); setRoute(false); setCategory(id) }}><type.icon size={16}/>{type.name}</button>)}</div>
     {savedOnly && <div className="shop-saved-banner"><Bookmark size={15}/>فقط ذخیره‌شده‌ها <button onClick={onClearSaved}>نمایش همه <X size={13}/></button></div>}
     <div className="map-viewport geographic-viewport shop-map-viewport">
-      <TehranMap ref={map} shops={shown} activeShop={active} selected={active?.id} route={route} theme={theme} origin={origin} onViewport={setView} onVisibleCount={setMarkerCount} onSelect={id => { const shop = active?.id === id ? active : shown.find(s => s.id === id); if (shop) select(shop) }}/>
+      <TehranMap ref={map} shops={shown} highlightedShops={highlighted} activeShop={active} selected={active?.id} route={route} theme={theme} origin={origin} onViewport={setView} onVisibleCount={setMarkerCount} onSelect={id => { const shop = active?.id === id ? active : highlighted.find(s => s.id === id) || shown.find(s => s.id === id); if (shop) select(shop) }}/>
       <div className={`shop-map-status ${loading ? 'is-loading' : ''}`} role="status"><span className={loading ? 'shop-tiny-loader' : 'shop-status-dot'}/>{zoomedOut ? 'یه کم نزدیک‌تر شو تا فروشگاه‌ها رو ببینی' : loading ? 'داریم این دور و بر رو می‌گردیم…' : error ? 'نقشه یه لحظه از دسترس خارج شد' : `${markerCount.toLocaleString('fa-IR')} فروشگاه همین دور و بر`}{error && <button aria-label="تلاش دوباره برای فروشگاه‌ها" onClick={() => setRetry(r => r + 1)}><RefreshCw size={15}/></button>}</div>
       <div className="map-controls"><button aria-label="بزرگنمایی" onClick={() => map.current?.zoomIn()}><Plus size={19}/></button><button aria-label="کوچک‌نمایی" onClick={() => map.current?.zoomOut()}><Minus size={19}/></button><span/><button aria-label="بازگشت به آدرس انتخابی" onClick={reset}><LocateFixed size={19}/></button><button aria-label="تغییر زاویه سه‌بعدی" onClick={() => map.current?.togglePitch()}><Compass size={19}/></button><button aria-label={expanded ? 'بستن نمای بزرگ' : 'بزرگ کردن نقشه'} onClick={() => setExpanded(v => !v)}>{expanded ? <X size={18}/> : <Maximize2 size={18}/>}</button></div>
       {!loading && !zoomedOut && !shown.length && !active && !error && view && <div className="shop-map-hint"><Store size={22}/><strong>{savedOnly ? 'اینجا هنوز چیزی ذخیره نکردی' : 'یه کم اون‌طرف‌تر رو ببین'}</strong><span>نقشه رو جابه‌جا کن یا اسم فروشگاه رو بنویس.</span></div>}

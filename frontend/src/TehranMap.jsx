@@ -57,7 +57,7 @@ function MapMarker({ map, coordinates, children, className }) {
   return createPortal(children, element)
 }
 
-const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, onSelect, theme, pickMode = false, onPick, initialCoordinates, origin, activeShop, onViewport, onVisibleCount }, ref) {
+const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops = [], selected, route, onSelect, theme, pickMode = false, onPick, initialCoordinates, origin, activeShop, onViewport, onVisibleCount }, ref) {
   const container = useRef(null)
   const instance = useRef(null)
   const themeRef = useRef(theme)
@@ -82,6 +82,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
     reset: () => instance.current?.flyTo({ ...HOME, ...(originRef.current ? { center: originRef.current, zoom: 14.8 } : {}), duration: reducedMotion() ? 0 : 900 }),
     goTo: point => { instance.current?.flyTo({ center: point, zoom: pickMode ? 16 : 16.6, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
       showTrip: point => { const m = instance.current, start = originRef.current; if (!m || !start) return; m.fitBounds([[Math.min(start[0], point[0]), Math.min(start[1], point[1])], [Math.max(start[0], point[0]), Math.max(start[1], point[1])]], { padding: { top: 80, bottom: Math.min(300, m.getContainer().clientHeight * .48), left: 55, right: 55 }, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
+    showPoints: points => { const m = instance.current; if (!m || !points.length) return; m.fitBounds([[Math.min(...points.map(p => p[0])), Math.min(...points.map(p => p[1]))], [Math.max(...points.map(p => p[0])), Math.max(...points.map(p => p[1]))]], { padding: 65, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
     pickCenter: () => { const point = instance.current?.getCenter(); if (point && pickMode) pickRef.current?.([point.lng, point.lat]) },
     togglePitch: () => { const m = instance.current; if (m) m.easeTo({ pitch: m.getPitch() > 10 ? 0 : 50, bearing: m.getPitch() > 10 ? 0 : -12, duration: reducedMotion() ? 0 : 650 }) },
   }), [])
@@ -163,11 +164,12 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], selected, route, o
   const occupied = []
   const labels = []
   const markerCandidates = [...(zoom >= 14 ? shops : [])]
+  for (const shop of highlightedShops) if (!markerCandidates.some(row => row.id === shop.id)) markerCandidates.unshift(shop)
   if (activeShop && !markerCandidates.some(shop => shop.id === activeShop.id)) markerCandidates.unshift(activeShop)
   const markers = map && loaded ? markerCandidates.sort((a, b) => Number(b.id === selected) - Number(a.id === selected)).filter(shop => {
     const point = map.project(shop.coordinates)
     if (point.x < 0 || point.y < 0 || point.x > map.getContainer().clientWidth || point.y > map.getContainer().clientHeight) return false
-    if (occupied.some(p => Math.abs(p.x - point.x) < 45 && Math.abs(p.y - point.y) < 47)) return false
+    if (!highlightedShops.some(row => row.id === shop.id) && occupied.some(p => Math.abs(p.x - point.x) < 45 && Math.abs(p.y - point.y) < 47)) return false
     occupied.push(point)
     return true
   }) : []
