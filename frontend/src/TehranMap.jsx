@@ -13,6 +13,17 @@ export const TEHRAN_BOUNDS = [[51.08, 35.53], [51.65, 35.84]]
 const HOME = { center: [51.412, 35.713], zoom: 14, pitch: 35, bearing: -12 }
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+
+function fitTrip(map, start, point) {
+  if (!map || !point) return
+  if (!start) { map.flyTo({ center: point, zoom: 16.3, duration: reducedMotion() ? 0 : 500 }); return }
+  const height = map.getContainer().clientHeight
+  map.fitBounds([[Math.min(start[0], point[0]), Math.min(start[1], point[1])], [Math.max(start[0], point[0]), Math.max(start[1], point[1])]], {
+    padding: { top: Math.min(125, height * .3), bottom: Math.min(55, height * .18), left: 48, right: 48 },
+    maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650,
+  })
+}
+
 // Mixed-language names are omitted instead of falling back to Latin text.
 export function persianLabelExpression() {
   const clean = value => ['all',
@@ -81,7 +92,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
     zoomOut: () => instance.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 }),
     reset: () => instance.current?.flyTo({ ...HOME, ...(originRef.current ? { center: originRef.current, zoom: 14.8 } : {}), duration: reducedMotion() ? 0 : 900 }),
     goTo: point => { instance.current?.flyTo({ center: point, zoom: pickMode ? 16 : 16.6, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 500 }); if (pickMode) pickRef.current?.(point) },
-      showTrip: point => { const m = instance.current, start = originRef.current; if (!m || !start) return; m.fitBounds([[Math.min(start[0], point[0]), Math.min(start[1], point[1])], [Math.max(start[0], point[0]), Math.max(start[1], point[1])]], { padding: { top: 80, bottom: Math.min(300, m.getContainer().clientHeight * .48), left: 55, right: 55 }, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
+    showTrip: point => fitTrip(instance.current, originRef.current, point),
     showPoints: points => { const m = instance.current; if (!m || !points.length) return; m.fitBounds([[Math.min(...points.map(p => p[0])), Math.min(...points.map(p => p[1]))], [Math.max(...points.map(p => p[0])), Math.max(...points.map(p => p[1]))]], { padding: 65, maxZoom: 16.3, pitch: 0, bearing: 0, duration: reducedMotion() ? 0 : 650 }) },
     pickCenter: () => { const point = instance.current?.getCenter(); if (point && pickMode) pickRef.current?.([point.lng, point.lat]) },
     togglePitch: () => { const m = instance.current; if (m) m.easeTo({ pitch: m.getPitch() > 10 ? 0 : 50, bearing: m.getPitch() > 10 ? 0 : -12, duration: reducedMotion() ? 0 : 650 }) },
@@ -153,6 +164,13 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
   }, [revision])
   useEffect(() => { if (map && loaded) applyPalette(map, theme) }, [theme, map, loaded])
   useEffect(() => { if (map && loaded && origin && !pickMode) map.flyTo({ center: origin, zoom: 14.8, duration: reducedMotion() ? 0 : 700 }) }, [origin, map, loaded, pickMode])
+  useEffect(() => {
+    if (!map || !loaded || !activeShop) return
+    const fit = () => fitTrip(map, origin, activeShop.coordinates)
+    const frame = requestAnimationFrame(fit)
+    map.on('resize', fit)
+    return () => { cancelAnimationFrame(frame); map.off('resize', fit) }
+  }, [map, loaded, activeShop?.id, activeShop?.coordinates?.[0], activeShop?.coordinates?.[1], origin])
   const occupied = []
   const labels = []
   const markerCandidates = [...(zoom >= 14 ? shops : [])]

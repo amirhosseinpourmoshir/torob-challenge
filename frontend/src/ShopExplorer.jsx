@@ -46,7 +46,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
   activeRef.current = active
   const cancelSearch = () => { searchVersion.current++; clearTimeout(searchTimer.current); searchController.current?.abort() }
   const closeSearch = () => { cancelSearch(); searchImmediately.current = false; setSearchOpen(false); setSearching(false); setResults(null); setSearchError('') }
-  const select = shop => { closeSearch(); setActive(shop); setRoute(true); onFocusShop?.(shop); map.current?.goTo(shop.coordinates) }
+  const select = shop => { closeSearch(); setActive(shop); setRoute(true); onFocusShop?.(shop); map.current?.showTrip(shop.coordinates) }
   const reset = () => { setHighlighted([]); setActive(null); setRoute(false); closeSearch(); map.current?.reset() }
   function search(text = query) {
     cancelSearch(); searchImmediately.current = true; setQuery(text); setSearchOpen(true); setSearchRevision(v => v + 1)
@@ -69,7 +69,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
       if (data.shops.length) {
         const nearest = data.shops[0]
         setActive(nearest); setRoute(true); onFocusShop?.(nearest)
-        if (activeRef.current?.id !== nearest.id || searchImmediately.current) map.current?.goTo(nearest.coordinates)
+        if (activeRef.current?.id !== nearest.id || searchImmediately.current) map.current?.showTrip(nearest.coordinates)
       } else {
         setActive(null); setRoute(false)
       }
