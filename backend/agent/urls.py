@@ -3,6 +3,7 @@ from . import views, admin_views
 from . import library_views
 
 urlpatterns = [path('conversations/<uuid:conversation_id>/', views.clear_conversation)]
+urlpatterns += [path('conversations/<uuid:conversation_id>/stop/', views.stop_conversation)]
 urlpatterns += [path('saved-products/', library_views.saved_products), path('products/<str:product_id>/', library_views.product_sheet)]
 urlpatterns += [path('shops/<str:shop_id>/products/', library_views.shop_sheet), path('shops/<str:shop_id>/inquiry/', library_views.shop_inquiry), path('conversations/<uuid:conversation_id>/focus-shop/', views.focus_shop)]
 

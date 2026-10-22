@@ -6,7 +6,9 @@ from .tools import execute_tool, collect_evidence, TOOL_LABELS
 def prepare_action(state, action, notify):
     event, payload = action.get('type'), action.get('payload', {})
     product_id = payload.get('productId')
-    if event == 'find_sellers' and product_id:
+    if event == 'set_budget' and state['context'].get('shopping_query'):
+        name, arguments = 'search_products', {'query': state['context']['shopping_query']}
+    elif event == 'find_sellers' and product_id:
         name, arguments = 'find_sellers', {'product_id': product_id}
     elif event in ('view_product', 'select_product', 'view_offer') and product_id:
         name, arguments = 'product_details', {'product_id': product_id}
@@ -20,7 +22,11 @@ def prepare_action(state, action, notify):
         answer = {'text': result['error'], 'blocks': []}
     else:
         state['evidence'] = collect_evidence(state.get('evidence', {}), result)
-        if name == 'find_sellers':
+        if name == 'search_products':
+            from .outcomes import found_answer
+            state['discovered_products'] = [row['id'] for row in result.get('products', [])]
+            answer = found_answer(state) or {'text': 'با این بودجه گزینه‌ای مطابق شرایط پیدا نکردم؛ می‌تونی بودجه یا مدل رو تغییر بدی.', 'blocks': [{'type': 'budget'}]}
+        elif name == 'find_sellers':
             ids = [row['id'] for row in result.get('shops', [])]
             state['discovered_shops'] = ids
             text = 'این فروشگاه‌ها رو برای انتخابت پیدا کردم؛ قیمت‌ها رو کنار هم ببین و قبل از رفتن موجودی رو بپرس.' if ids else 'با انتخاب‌های فعلی فروشگاهی پیدا نکردم؛ می‌تونیم بودجه یا گزینه‌های دیگه رو بررسی کنیم.'

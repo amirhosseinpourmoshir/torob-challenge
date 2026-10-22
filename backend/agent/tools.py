@@ -28,6 +28,7 @@ TOOL_DEFINITIONS = {
     'store_details': ('نشانی دقیق/داخل پاساژ، ساعت ثبت‌شده، روش‌های پرداخت و لینک‌های رسمی فروشگاه.', parameters({'shop_id': ID}, ['shop_id'])),
     'store_products': ('محصولات، دسته‌ها و قیمت‌های فروش یک فروشگاه مشخص؛ برای «چیا میفروشه؟ افرهاش چیه؟» حتماً اجرا کن. بدون shop_id فروشگاه انتخابی فعلی استفاده می‌شود. query و category برای محدودکردن، offset برای ادامه.', parameters({'shop_id': ID, 'query': TEXT, 'category': TEXT, 'limit': LIMIT, 'offset': {'type': 'integer', 'minimum': 0, 'maximum': 1000}})),
     'price_context': ('قیمت‌های مرجع تاریخ‌دار مدل‌های پوشش‌داده‌شده برای بررسی اختلاف شدید قیمت؛ منبع، مدل و تاریخ را ذکر کن، از قیمت حافظه‌ای یا حکم قطعی فیک بودن استفاده نکن.', parameters({'query': TEXT}, ['query'])),
+    'get_price_range': ('پیش از کنترل بودجه، بازه قیمت واقعی همین دسته یا مدل را از کاتالوگ بخوان؛ فیلتر بودجه قبلی در محاسبه اعمال نمی‌شود.', parameters({'query': TEXT}, ['query'])),
     'neighborhood_info': ('محله‌ها و مرکز تراکم فروشگاه‌های موجود در دیتاست تهران را پیدا کن؛ اطلاعات جغرافیایی دلخواه نساز.', parameters({'query': TEXT})),
     'payment_providers': ('نام ارائه‌دهنده‌ها و تعداد روش‌های حضوری واقعی را ببین.', parameters({})),
     'prepare_contact': ('فقط متن استعلام و لینک رسمی فروشگاه را آماده کن. هیچ تماس یا دایرکتی ارسال نمی‌شود.', parameters({'shop_id': ID, 'questions': {'type': 'array', 'items': {'type': 'string', 'maxLength': 300}, 'maxItems': 6}}, ['shop_id'])),
@@ -37,7 +38,7 @@ TOOL_SPECS = [{'type': 'function', 'function': {'name': name, 'description': des
 TOOL_LABELS = {'load_skill': 'دارم راهنمای انتخاب رو بررسی می‌کنم', 'get_context': 'شرایط خریدت رو بررسی می‌کنم', 'set_preferences': 'انتخاب‌هات رو نگه می‌دارم', 'search_categories': 'دستهٔ مناسب رو پیدا می‌کنم', 'search_products': 'دارم مدل‌های مناسب رو پیدا می‌کنم', 'product_details': 'جزئیات این مدل رو می‌خونم', 'compare_products': 'تفاوت مدل‌ها رو کنار هم می‌ذارم', 'find_sellers': 'فروشگاه‌های این محصول رو بررسی می‌کنم', 'nearby_shops': 'دارم اطرافت رو می‌گردم', 'store_details': 'نشانی و شرایط فروشگاه رو بررسی می‌کنم', 'neighborhood_info': 'این محله رو در داده‌ها بررسی می‌کنم', 'payment_providers': 'روش‌های خرید اعتباری رو بررسی می‌کنم', 'prepare_contact': 'متن استعلام رو آماده می‌کنم', 'price_history': 'داده‌های قیمت رو بررسی می‌کنم'}
 
 
-TOOL_LABELS.update(store_products='دارم ویترین این فروشگاه رو می‌بینم', price_context='قیمت و نشانه‌های اصالت رو بررسی می‌کنم')
+TOOL_LABELS.update(store_products='دارم ویترین این فروشگاه رو می‌بینم', price_context='قیمت و نشانه‌های اصالت رو بررسی می‌کنم', get_price_range='بازهٔ قیمت همین کالاها رو پیدا می‌کنم')
 
 def execute_tool(name, arguments, context):
     if name not in TOOL_DEFINITIONS:
@@ -60,7 +61,16 @@ def execute_tool(name, arguments, context):
             query = normalize_search(arguments['query'])
             return {'categories': list(Category.objects.filter(name__icontains=query).values_list('name', flat=True)[:12])}
         if name == 'search_products':
+            from .budget import price_range
+            if context.get('shopping_query') != arguments['query'] or not context.get('price_range'):
+                context['shopping_query'] = arguments['query']
+                context['price_range'] = price_range(context, arguments['query'])
             return catalog.search_products(context, **arguments)
+        if name == 'get_price_range':
+            from .budget import price_range
+            context['shopping_query'] = arguments['query']
+            context['price_range'] = price_range(context, arguments['query'])
+            return {'price_range': context['price_range'], 'preferences': context.get('preferences', {}), 'note': 'اگر بازه پیدا نشد نام دسته یا مدل را روشن کن؛ عدد دلخواه به‌جای بازه بازار نگذار.'}
         if name == 'product_details':
             return catalog.product_details(context, **arguments)
         if name == 'compare_products':
@@ -102,7 +112,7 @@ def collect_evidence(evidence, result):
             if isinstance(row, dict) and row.get('id'):
                 old = evidence[kind].get(row['id'], {})
                 # A details read without a price must not erase a known offer price.
-                if row.get('price') is None and old.get('price') is not None:
+                if row.get('price') is None and old.get('price') is not None and (kind == 'products' or row.get('productId') and row.get('productId') == old.get('productId')):
                     row = {**row, 'price': old['price']}
                     if kind == 'shops':
                         row['credit'] = old.get('credit', False)

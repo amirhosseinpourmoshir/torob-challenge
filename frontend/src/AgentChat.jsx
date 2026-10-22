@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpLeft, AudioLines, CornerDownLeft, Gift, Headphones, LoaderCircle, Mic, RotateCcw, Smartphone, Sparkles, Trash2, Volume2, WandSparkles } from 'lucide-react'
+import { ArrowUpLeft, AudioLines, CornerDownLeft, Gift, Headphones, LoaderCircle, Mic, RotateCcw, Smartphone, Sparkles, Trash2, Square, Volume2, WandSparkles } from 'lucide-react'
 import { AgentRenderer } from './agent-ui/AgentRenderer.jsx'
 import { AgentProgress } from './agent-ui/interactions.jsx'
 import { ActionButton, AgentDialog } from './agent-ui/primitives.jsx'
 import useSpeechInput from './useSpeechInput.js'
 import { useShopping } from './shopping-context.js'
+import { InteractionCoordinator } from './agent-ui/InteractionCoordinator.jsx'
 import './agent-chat.css'
 import './chat-redesign.css'
 
@@ -32,11 +33,13 @@ export default function AgentChat({ panelRef, composerRef, onToast, onMapShops, 
   const [clearConfirm, setClearConfirm] = useState(false)
   const csrf = useRef('')
   const lastRequest = useRef(null)
+  const submitController = useRef(null)
+  const [stopping, setStopping] = useState(false)
   const end = useRef(null)
   const chatViewport = useRef(null)
   const freshTurns = useRef(new Set())
   const epoch = useRef(0)
-  const answeredWidgetIds = turns.filter(turn => turn.action?.type === 'clarification_answer' && turn.status !== 'failed').map(turn => turn.action.widgetId)
+  const answeredWidgetIds = turns.filter(turn => turn.action?.type === 'clarification_answer' && !['failed', 'cancelled'].includes(turn.status)).map(turn => turn.action.widgetId)
   function userText(turn) {
     const action = turn.action
     if (!action?.type) return turn.text
@@ -53,7 +56,7 @@ export default function AgentChat({ panelRef, composerRef, onToast, onMapShops, 
   const activeTurn = turns.find(turn => ['queued', 'running'].includes(turn.status))
   const busy = posting || !!activeTurn
   async function api(path, method = 'GET', data, signal) {
-    const response = await fetch(`/api/agent/${path}`, { method, signal, headers: { 'Content-Type': 'application/json', ...(method !== 'GET' ? { 'X-CSRFToken': csrf.current } : {}) }, ...(data ? { body: JSON.stringify(data) } : {}) })
+    const response = await fetch(`/api/agent/${path}`, { method, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { 'Content-Type': 'application/json', ...(method !== 'GET' ? { 'X-CSRFToken': csrf.current } : {}) }, ...(data ? { body: JSON.stringify(data) } : {}) })
     let body
     try { body = await response.json() } catch { throw new Error('ارتباط کامل نشد؛ دوباره امتحان کنیم؟') }
     if (!response.ok) throw new Error(body.error || 'این بار نتیجه نرسید.')
@@ -73,6 +76,11 @@ export default function AgentChat({ panelRef, composerRef, onToast, onMapShops, 
     let disposed = false, timer
     const controller = new AbortController()
     const poll = async () => {
+      const limit = Date.parse(activeTurn.deadline_at || activeTurn.created_at) + (activeTurn.deadline_at ? 5000 : 95000)
+      if (Date.now() > limit) {
+        setTurns(previous => previous.map(turn => turn.id === activeTurn.id ? { ...turn, status: 'failed', error: 'مهلت پاسخ تمام شد؛ دوباره امتحان کن.' } : turn))
+        return
+      }
       try {
         const result = await api(`turns/${activeTurn.id}/`, 'GET', undefined, controller.signal)
         if (disposed) return
@@ -102,15 +110,28 @@ export default function AgentChat({ panelRef, composerRef, onToast, onMapShops, 
     if (!conversation || busy || (!text.trim() && !action)) return
     const request = retry && lastRequest.current ? lastRequest.current : { request_id: crypto.randomUUID(), text: text.trim(), ...(action ? { action } : {}) }
     lastRequest.current = request
+    submitController.current = new AbortController()
     const submittedEpoch = epoch.current
     setPosting(true); setPendingText(action ? labels[action.type] || text : request.text); setMessage(''); setError('')
     try {
       await shopping?.waitForFocus()
       if (submittedEpoch !== epoch.current) return
-      const turn = await api(`conversations/${conversation}/turns/`, 'POST', request)
+      const turn = await api(`conversations/${conversation}/turns/`, 'POST', request, submitController.current.signal)
       if (submittedEpoch !== epoch.current) return
       setTurns(previous => previous.some(t => t.id === turn.id) ? previous : [...previous, turn]); setPendingText(''); lastRequest.current = null
     } catch (e) { if (submittedEpoch === epoch.current) setError(e.message) } finally { if (submittedEpoch === epoch.current) setPosting(false) }
+  }
+  async function stop() {
+    if (stopping) return
+    const requestId = activeTurn?.request_id || lastRequest.current?.request_id
+    epoch.current++; submitController.current?.abort(); speech.cancel(); setStopping(true)
+    try {
+      const data = await api(`conversations/${conversation}/stop/`, 'POST', { request_id: requestId })
+      if (data.turns) setTurns(data.turns)
+      else setTurns(previous => previous.map(turn => ['queued', 'running'].includes(turn.status) ? { ...turn, status: 'cancelled' } : turn))
+      setError(''); lastRequest.current = null
+    } catch { setError('درخواست توقف به سرور نرسید؛ دوباره توقف رو بزن.') }
+    finally { setPosting(false); setPendingText(''); setStopping(false) }
   }
   async function handleAction(action) {
     if (action.type === 'select_shop') {
@@ -133,8 +154,8 @@ export default function AgentChat({ panelRef, composerRef, onToast, onMapShops, 
       callbacks.current.onMapShops?.([]); window.speechSynthesis?.cancel()
     } catch (e) { setError(e.message) } finally { setPosting(false) }
   }
-  return <aside className="chat-panel chat-v2 real-agent-chat" ref={panelRef} aria-label="گفتگو با دستیار خرید"><div className="chat-header"><div className={`assistant-avatar ${busy ? 'is-thinking' : ''}`}><Mascot/><span/></div><div><h2>تُربی، همراه خریدت <Sparkles size={14}/></h2><p><span className="online-dot"/>{busy ? 'دارم قدم بعدی رو بررسی می‌کنم' : 'اینجام، برای پیدا کردن انتخاب تو'}</p></div>{speech.canRead && <button className="icon-button sound-button" aria-label={speech.speaking ? 'توقف خواندن پاسخ' : 'خواندن آخرین پاسخ'} title="خواندن پاسخ با صدای فارسی دستگاه" onClick={() => speech.speak([...turns].reverse().find(turn => turn.response?.text)?.response.text)}><Volume2 size={19}/></button>}<button className="chat-clear-trigger" aria-label="پاک کردن گفتگو" disabled={!conversation} onClick={() => setClearConfirm(true)}><Trash2 size={16}/><span>پاک کردن</span></button></div><AgentDialog open={clearConfirm} onClose={() => setClearConfirm(false)} title="از نو شروع کنیم؟" className="clear-conversation-dialog"><div className="clear-conversation-art"><Trash2 size={30}/></div><p>پیام‌ها و انتخاب‌های این گفتگو پاک می‌شن. محصول‌ها و فروشگاه‌هایی که ذخیره کردی، نگه داشته می‌شن.</p><div className="clear-conversation-actions"><button disabled={posting} onClick={restart}>پاک کن و از نو شروع کنیم</button><button onClick={() => setClearConfirm(false)}>ادامهٔ همین گفتگو</button></div></AgentDialog><div className="chat-content" ref={chatViewport}>
+  return <aside className="chat-panel chat-v2 real-agent-chat" ref={panelRef} aria-label="گفتگو با دستیار خرید"><div className="chat-header"><div className={`assistant-avatar ${busy ? 'is-thinking' : ''}`}><Mascot/><span/></div><div><h2>تُربی، همراه خریدت <Sparkles size={14}/></h2><p><span className="online-dot"/>{busy ? 'دارم قدم بعدی رو بررسی می‌کنم' : 'اینجام، برای پیدا کردن انتخاب تو'}</p></div>{speech.canRead && <button className="icon-button sound-button" aria-label={speech.speaking ? 'توقف خواندن پاسخ' : 'خواندن آخرین پاسخ'} title="خواندن پاسخ با صدای فارسی دستگاه" onClick={() => speech.speak([...turns].reverse().find(turn => turn.response?.text)?.response.text)}><Volume2 size={19}/></button>}<button className="chat-clear-trigger" aria-label="پاک کردن گفتگو" disabled={!conversation} onClick={() => setClearConfirm(true)}><Trash2 size={16}/><span>پاک کردن</span></button></div><AgentDialog open={clearConfirm} onClose={() => setClearConfirm(false)} title="از نو شروع کنیم؟" className="clear-conversation-dialog"><div className="clear-conversation-art"><Trash2 size={30}/></div><p>پیام‌ها و انتخاب‌های این گفتگو پاک می‌شن. محصول‌ها و فروشگاه‌هایی که ذخیره کردی، نگه داشته می‌شن.</p><div className="clear-conversation-actions"><button disabled={posting} onClick={restart}>پاک کن و از نو شروع کنیم</button><button onClick={() => setClearConfirm(false)}>ادامهٔ همین گفتگو</button></div></AgentDialog><InteractionCoordinator busy={busy} groups={turns.filter(turn => turn.status === 'done').map(turn => turn.response?.widgets || [])} answeredIds={answeredWidgetIds}><div className="chat-content" ref={chatViewport}>
     {!turns.length && !pendingText && <div className="welcome"><div className="welcome-kicker"><span/>همراه انتخاب‌های تو</div><div className="mascot-stage"><div className="mascot-halo"/><span className="floating-star star-one"><Sparkles size={21}/></span><span className="floating-star star-two"><Sparkles size={26}/></span><button className="mascot-interaction" aria-label="شروع گفت‌وگو با تُربی" onClick={() => composerRef.current?.focus()}><Mascot className="hero-mascot"/></button><div className="mascot-shadow"/><span className="mascot-label"><AudioLines size={14}/>گوشم با توئه</span></div><h3>امروز چی توی ذهنته؟</h3><p>یه نیاز، یه ایده یا حتی یه «نمی‌دونم»؛<br/>با هم از همین‌جا شروع می‌کنیم.</p><div className="suggestions">{suggestions.map((suggestion, i) => <button key={suggestion.text} disabled={!conversation || busy} style={{ '--delay': `${i * 80}ms` }} onClick={() => submit(suggestion.text)}><span className={`suggestion-icon suggestion-${i}`}><suggestion.icon size={20}/></span><span><strong>{suggestion.text}</strong><small>{i === 0 ? 'یه انتخاب خوش‌صدا' : i === 1 ? 'کشف فروشگاه‌های نزدیک' : 'یه چیزی که خوشحالش کنه'}</small></span><ArrowUpLeft size={17}/></button>)}</div></div>}
-    {(turns.length > 0 || pendingText) && <div className="conversation real-conversation"><div className="conversation-note">قدم‌به‌قدم تا انتخاب تو<Sparkles size={13}/></div>{turns.map(turn => <div key={turn.id} className="agent-turn"><div className="message user"><p>{userText(turn)}</p></div>{turn.status === 'done' && <div className="agent-reply"><span className="message-author">تُربی<Sparkles size={12}/></span><p>{turn.response?.text}</p><AgentRenderer widgets={turn.response?.widgets || []} onAction={handleAction} autoOpenPopups={freshTurns.current.has(turn.id) && turn.id === turns.at(-1)?.id} answeredWidgetIds={answeredWidgetIds}/>{turn.response?.map_shops?.length > 0 && <button className="chat-map-connection" onClick={onFocusMap}><ArrowUpLeft size={18}/><span>دیدن {turn.response.map_shops.length.toLocaleString('fa-IR')} فروشگاه روی نقشه</span></button>}</div>}{['queued', 'running'].includes(turn.status) && <div className="agent-ui agent-live-progress">{turn.events?.length ? <AgentProgress title="داریم به انتخاب نزدیک‌تر می‌شیم" steps={stepsFor(turn)}/> : <div className="thinking-card"><span className="thinking-orb"><WandSparkles size={19}/></span><div><strong>دارم خواسته‌ات رو بررسی می‌کنم</strong><div className="typing"><span/><span/><span/><small>یه لحظه همراه من باش</small></div></div></div>}</div>}{turn.status === 'failed' && <div className="agent-ui agent-turn-error" role="alert"><p>{turn.error || 'این بار نتیجه نرسید.'}</p><ActionButton tone="secondary" icon={RotateCcw} disabled={busy} onClick={() => submit(turn.text, turn.action)}>دوباره امتحان کنیم</ActionButton></div>}</div>)}{pendingText && <div className="message user"><p>{pendingText}</p></div>}<div ref={end}/></div>}
-    </div><div className="chat-bottom">{error && <div className="agent-chat-error" role="alert"><span>{error}</span>{!busy && <button onClick={() => conversation ? lastRequest.current ? submit(lastRequest.current.text, lastRequest.current.action, true) : load().catch(e => setError(e.message)) : load().catch(e => setError(e.message))}>تلاش دوباره</button>}</div>}{speech.listening && <div className="voice-capture-note" role="status"><AudioLines size={20}/><span>{speech.interim || 'دارم گوش می‌دم؛ حرفت با سرویس مرورگر به متن تبدیل می‌شه.'}</span><button onClick={speech.stop}>پایان</button></div>}<form className="chat-input" onSubmit={e => { e.preventDefault(); submit() }}><input ref={composerRef} value={message} maxLength={2000} onChange={e => setMessage(e.target.value)} placeholder="مثلاً یه هدفون خوب می‌خوام…" aria-label="پیام به دستیار"/><button type="button" className={`mic-button ${speech.listening ? 'is-listening' : ''}`} disabled={!speech.canListen} aria-label={speech.listening ? 'پایان ضبط گفتار' : 'تبدیل گفتار به متن'} title={speech.canListen ? 'گفتار فارسی به متن با سرویس مرورگر' : 'از میکروفن کیبورد گوشی استفاده کن'} onClick={speech.start}><Mic size={19}/></button><button className="send-button" type="submit" disabled={!message.trim() || busy || !conversation} aria-label="ارسال پیام">{busy ? <LoaderCircle size={19} className="au-spin"/> : <ArrowUpLeft size={20}/>}</button></form><div className="composer-meta"><span><Sparkles size={11}/>با یه جمله شروع کن</span><span><CornerDownLeft size={11}/>برای ارسال</span></div><p className="demo-note">قیمت و موجودی رو قبل از رفتن از فروشگاه بپرس.</p></div></aside>
+    {(turns.length > 0 || pendingText) && <div className="conversation real-conversation"><div className="conversation-note">قدم‌به‌قدم تا انتخاب تو<Sparkles size={13}/></div>{turns.map(turn => <div key={turn.id} className="agent-turn"><div className="message user"><p>{userText(turn)}</p></div>{turn.status === 'done' && <div className="agent-reply"><span className="message-author">تُربی<Sparkles size={12}/></span><p>{turn.response?.text}</p><AgentRenderer widgets={turn.response?.widgets || []} onAction={handleAction} autoOpenPopups={freshTurns.current.has(turn.id) && turn.id === turns.at(-1)?.id} answeredWidgetIds={answeredWidgetIds}/>{turn.response?.map_shops?.length > 0 && <button className="chat-map-connection" onClick={onFocusMap}><ArrowUpLeft size={18}/><span>دیدن {turn.response.map_shops.length.toLocaleString('fa-IR')} فروشگاه روی نقشه</span></button>}</div>}{['queued', 'running'].includes(turn.status) && <div className="agent-ui agent-live-progress">{turn.events?.length ? <AgentProgress title="داریم به انتخاب نزدیک‌تر می‌شیم" steps={stepsFor(turn)}/> : <div className="thinking-card"><span className="thinking-orb"><WandSparkles size={19}/></span><div><strong>دارم خواسته‌ات رو بررسی می‌کنم</strong><div className="typing"><span/><span/><span/><small>یه لحظه همراه من باش</small></div></div></div>}</div>}{turn.status === 'cancelled' && <p className="chat-stopped" role="status">پاسخ متوقف شد؛ هر وقت خواستی ادامه می‌دیم.</p>}{turn.status === 'failed' && <div className="agent-ui agent-turn-error" role="alert"><p>{turn.error || 'این بار نتیجه نرسید.'}</p><ActionButton tone="secondary" icon={RotateCcw} disabled={busy} onClick={() => submit(turn.text, turn.action)}>دوباره امتحان کنیم</ActionButton></div>}</div>)}{pendingText && <div className="message user"><p>{pendingText}</p></div>}<div ref={end}/></div>}
+    </div><div className="chat-bottom">{error && <div className="agent-chat-error" role="alert"><span>{error}</span>{!busy && <button onClick={() => conversation ? lastRequest.current ? submit(lastRequest.current.text, lastRequest.current.action, true) : load().catch(e => setError(e.message)) : load().catch(e => setError(e.message))}>تلاش دوباره</button>}</div>}{speech.listening && <div className="voice-capture-note" role="status"><AudioLines size={20}/><span>{speech.interim || 'دارم گوش می‌دم؛ حرفت با سرویس مرورگر به متن تبدیل می‌شه.'}</span><button onClick={speech.stop}>پایان</button></div>}<form className="chat-input" onSubmit={e => { e.preventDefault(); submit() }}><input ref={composerRef} value={message} maxLength={2000} onChange={e => setMessage(e.target.value)} placeholder="مثلاً یه هدفون خوب می‌خوام…" aria-label="پیام به دستیار"/><button type="button" className={`mic-button ${speech.listening ? 'is-listening' : ''}`} disabled={!speech.canListen} aria-label={speech.listening ? 'پایان ضبط گفتار' : 'تبدیل گفتار به متن'} title={speech.canListen ? 'گفتار فارسی به متن با سرویس مرورگر' : 'از میکروفن کیبورد گوشی استفاده کن'} onClick={speech.start}><Mic size={19}/></button>{busy ? <button type="button" className="stop-button" aria-label="توقف پاسخ" disabled={stopping} onClick={stop}><Square size={16} fill="currentColor"/><span>{stopping ? 'توقف…' : 'توقف'}</span></button> : <button className="send-button" type="submit" disabled={!message.trim() || !conversation} aria-label="ارسال پیام"><ArrowUpLeft size={20}/></button>}</form><div className="composer-meta"><span><Sparkles size={11}/>با یه جمله شروع کن</span><span><CornerDownLeft size={11}/>برای ارسال</span></div><p className="demo-note">قیمت و موجودی رو قبل از رفتن از فروشگاه بپرس.</p></div></InteractionCoordinator></aside>
 }

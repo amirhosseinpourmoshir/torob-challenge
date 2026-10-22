@@ -3,7 +3,7 @@ import uuid
 from io import BytesIO
 from datetime import timedelta
 from unittest.mock import patch
-from django.test import TestCase, SimpleTestCase, Client
+from django.test import TestCase, SimpleTestCase, Client, override_settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.utils import timezone
@@ -43,6 +43,64 @@ class AgentCatalogTests(TestCase):
         self.assertEqual(result['products'][0]['price'], 100)
         self.assertIn('عمر باتری', result['products'][0]['specs'])
         self.assertEqual(search_products(self.context, 'کاور هدفون')['products'][0]['id'], 'p-case')
+
+    def test_stop_is_owned_csrf_checked_and_late_worker_cannot_overwrite_it(self):
+        from .lifecycle import finish
+        client = Client(enforce_csrf_checks=True)
+        initial = client.get('/api/agent/conversations/').json()
+        conversation = Conversation.objects.get(pk=initial['id'])
+        turn = AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), text='هدفون', status='running', context=self.context)
+        path = f"/api/agent/conversations/{conversation.pk}/stop/"
+        self.assertEqual(client.post(path, data='{}', content_type='application/json').status_code, 403)
+        self.assertEqual(client.post(path, data='{}', content_type='application/json', HTTP_X_CSRFTOKEN=initial['csrf_token']).status_code, 200)
+        self.assertFalse(finish(turn.pk, {'answer': {'text': 'late'}}))
+        with patch('agent.graph.chat', side_effect=AssertionError('cancelled work must not invoke provider')):
+            execute_turn(turn)
+        turn.refresh_from_db()
+        self.assertEqual(turn.status, 'cancelled')
+        self.assertEqual(turn.response, {})
+        self.assertEqual(Client().post(path, data='{}', content_type='application/json').status_code, 404)
+
+    def test_stop_before_submission_records_cancellation_intent(self):
+        initial = self.client.get('/api/agent/conversations/').json()
+        request_id = str(uuid.uuid4())
+        self.client.post(f"/api/agent/conversations/{initial['id']}/stop/", data=json.dumps({'request_id': request_id}), content_type='application/json')
+        response = self.client.post(f"/api/agent/conversations/{initial['id']}/turns/", data=json.dumps({'request_id': request_id, 'text': 'هدفون'}), content_type='application/json')
+        self.assertEqual(response.json()['status'], 'cancelled')
+
+    @override_settings(AGENT_TURN_TIMEOUT_SECONDS=5)
+    def test_stalled_turn_expires_even_without_worker_and_found_data_survives(self):
+        initial = self.client.get('/api/agent/conversations/').json()
+        conversation = Conversation.objects.get(pk=initial['id'])
+        turn = AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), text='هدفون', status='running', context=self.context)
+        AgentTurn.objects.filter(pk=turn.pk).update(created_at=timezone.now()-timedelta(seconds=10))
+        self.assertEqual(self.client.get(f'/api/agent/turns/{turn.pk}/').json()['status'], 'failed')
+        product = search_products(self.context, 'هدفون')['products'][0]
+        second = AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), text='هدفون', status='running', context=self.context, checkpoint={'context': self.context, 'messages': [{'role': 'user', 'content': 'هدفون'}], 'evidence': {'products': {product['id']: product}}, 'discovered_products': [product['id']]})
+        AgentTurn.objects.filter(pk=second.pk).update(created_at=timezone.now()-timedelta(seconds=10))
+        response = self.client.get(f'/api/agent/turns/{second.pk}/').json()
+        self.assertEqual(response['status'], 'done')
+        self.assertEqual(response['response']['widgets'][0]['props']['products'][0]['id'], product['id'])
+
+    def test_budget_uses_its_category_price_range_and_preserves_selected_value(self):
+        from .budget import price_range, budget_props
+        category = Category.objects.create(name='لپ تاپ')
+        for i, price in enumerate([1000000000, 2000000000] * 4 + [8000000000, 900000000000000000]):
+            product = Product.objects.create(id=f'laptop-{i}', persian_title=f'لپ تاپ مدل {i}', category=category, specs=[], search_text='لپ تاپ', source_data={}, dataset_import=self.product.dataset_import)
+            Offer.objects.create(id=f'lp-{i}', product=product, shop_id='s-0', price_toman=price, source_data={}, dataset_import=self.product.dataset_import)
+        context = {'preferences': {'max_price': 1500000000}, 'shopping_query': 'لپ تاپ'}
+        context['price_range'] = price_range(context)
+        self.assertEqual(context['price_range']['max'], 2000000000)
+        self.assertEqual(context['price_range']['min'], 1000000000)
+        self.assertEqual(context['price_range']['excluded_outliers'], 1)
+        props = budget_props(context)
+        self.assertEqual(props['value'], 1500000000)
+        response = render_response({'text': 'انتخاب کن', 'blocks': [{'type': 'budget', 'max': 10000000}]}, {'context': context}, 'budget')
+        self.assertEqual(response['widgets'][0]['props']['max'], 2000000000)
+
+    def test_budget_and_popup_are_never_active_in_same_response(self):
+        response = render_response({'text': 'انتخاب کنیم', 'blocks': [{'type': 'budget'}, {'type': 'clarification', 'question': 'چه کاربردی؟', 'options': [{'id': 'a', 'label': 'کار'}]}]}, {}, 'one-control')
+        self.assertEqual([widget['type'] for widget in response['widgets']], ['clarification'])
 
     def test_shared_search_policy_rejects_accessories_and_wrong_model_for_other_brands(self):
         category = Category.objects.create(name='گوشی موبایل')
@@ -111,6 +169,16 @@ class AgentCatalogTests(TestCase):
         self.assertEqual(len(store_products(self.context, 's-0', query='موسیقی')['products']), 1)
         self.assertEqual(len(store_details(self.context, 's-0')['products']), 2)
         self.assertTrue(store_products(self.context).get('needs_shop'))
+        self.assertEqual(len(store_products(self.context, 's-0', category='هدفون، هدست و هندزفری')['products']), 1)
+        self.assertEqual(self.client.get('/api/agent/shops/s-0/products/', {'category': 'هدفون، هدست و هندزفری'}).status_code, 200)
+
+    def test_generic_store_never_inherits_a_previous_product_offer_price(self):
+        from .tools import collect_evidence
+        evidence = {'shops': {'s-0': {'id': 's-0', 'name': 'فروشگاه', 'price': 100, 'productId': 'p-main'}}}
+        evidence = collect_evidence(evidence, {'shops': [{'id': 's-0', 'name': 'فروشگاه', 'price': None}]})
+        self.assertIsNone(evidence['shops']['s-0']['price'])
+        sellers = find_sellers(self.context, 'p-main')['shops']
+        self.assertTrue(all(seller['productId'] == 'p-main' for seller in sellers))
 
     def test_product_map_section_does_not_wait_for_similar_products(self):
         with patch('agent.library_views.priced_products', side_effect=AssertionError('similar path must be independent')):
@@ -194,8 +262,8 @@ class AgentCatalogTests(TestCase):
             execute_turn(turn)
         turn.refresh_from_db(); conversation.refresh_from_db()
         self.assertEqual(turn.status, 'done')
-        self.assertEqual(turn.usage['total_tokens'], 30)
-        self.assertEqual(provider.call_count, 2)
+        self.assertEqual(turn.usage['total_tokens'], 10)
+        self.assertEqual(provider.call_count, 1)
         self.assertEqual(turn.response['widgets'][0]['props']['products'][0]['id'], 'p-main')
         self.assertIn('p-main', conversation.state['evidence']['products'])
         self.assertEqual(turn.checkpoint, {})

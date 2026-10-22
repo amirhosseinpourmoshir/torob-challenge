@@ -57,7 +57,7 @@ def render_response(answer, state, turn_id):
             props = {'title': product['title'], 'images': [{'src': src, 'alt': product['title']} for src in product.get('_images', [])[:12]]}
         elif kind == 'contact' and shop:
             draft = evidence.get('contacts', {}).get(shop['id'])
-            props = draft or {'shopId': shop['id'], 'shopName': shop['name'], 'questions': ['قیمت امروز چقدره؟', 'موجودی و شرایط کالا رو تأیید می‌کنید؟', 'برای مراجعه حضوری چه ساعتی مناسب است؟']}
+            props = draft or {'shopId': shop['id'], 'shopName': shop['name'], 'description': 'قبل از رفتن، می‌خوای متن پرسش دربارهٔ کالا و ساعت مراجعه رو برات آماده کنم؟' if not shop.get('productId') else 'این قیمت ممکنه برای قبل باشه؛ می‌خوای متن استعلام قیمت و موجودی امروز رو آماده کنم؟', 'questions': ['قیمت امروز چقدره؟', 'موجودی و شرایط کالا رو تأیید می‌کنید؟', 'برای مراجعه حضوری چه ساعتی مناسب است؟']}
         elif kind == 'alternative' and product:
             props = {'product': clean(product), 'reason': str(block.get('reason', 'این انتخاب رو هم می‌تونیم بررسی کنیم.'))[:500]}
         elif kind == 'itinerary' and selected_shops:
@@ -92,7 +92,7 @@ def render_response(answer, state, turn_id):
             widgets.append({'version': 1, 'id': f'{turn_id}-prices', 'type': 'price_comparison', 'props': {'offers': priced[:8]}})
     if discovered and 'contact' not in kinds and len(widgets) < 4:
         shop = discovered[0]
-        widgets.append({'version': 1, 'id': f'{turn_id}-inquiry', 'type': 'contact', 'props': {'shopId': shop['id'], 'shopName': shop['name'], 'questions': ['قیمت و موجودی امروز رو تأیید می‌کنید؟', 'تا چه ساعتی امکان مراجعه حضوری هست؟']}})
+        widgets.append({'version': 1, 'id': f'{turn_id}-inquiry', 'type': 'contact', 'props': {'shopId': shop['id'], 'shopName': shop['name'], 'description': 'قبل از رفتن، می‌خوای متن پرسش دربارهٔ کالا و ساعت مراجعه رو برات آماده کنم؟' if not shop.get('productId') else 'این قیمت ممکنه برای قبل باشه؛ می‌خوای متن استعلام قیمت و موجودی امروز رو آماده کنم؟', 'questions': ['قیمت و موجودی امروز رو تأیید می‌کنید؟', 'تا چه ساعتی امکان مراجعه حضوری هست؟']}})
     widgets = [widget for widget in widgets if not list(validator().iter_errors(widget))]
     text = answer.get('text', '') if isinstance(answer, dict) else ''
     if not isinstance(text, str) or not text.strip():

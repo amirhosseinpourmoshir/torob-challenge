@@ -183,6 +183,7 @@ def find_sellers(context, product_id, sort='price', radius_km=None, limit=6, exc
         if offer.shop_id in seen:
             continue
         shop = shop_ui(offer.shop, context, offer.price_toman, offer.availability_status)
+        shop['productId'] = product_id
         shop['credit'] = any(
             option.channel == 'in_person'
             and offer.price_toman is not None
@@ -215,7 +216,7 @@ def store_products(context, shop_id=None, query='', category='', limit=6, offset
     all_offers = Offer.objects.filter(shop_id=shop_id)
     offers = eligible_offers(context).filter(shop_id=shop_id)
     if category:
-        offers = offers.filter(product__category_id__icontains=category)
+        offers = offers.filter(product__category__name__icontains=category)
     for word in normalize_search(query).split()[:8]:
         offers = offers.filter(product__search_text__contains=word)
     stats = offers.filter(product_id=OuterRef('pk')).values('product_id').annotate(low=Min('price_toman'), count=Count('pk'))

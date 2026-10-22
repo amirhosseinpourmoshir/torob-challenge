@@ -494,6 +494,11 @@
                   "minLength": 1,
                   "maxLength": 100
                 },
+                "productId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
                 "name": {
                   "type": "string",
                   "maxLength": 2000
@@ -605,6 +610,11 @@
                 "type": "object",
                 "properties": {
                   "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "productId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 100
@@ -1462,6 +1472,10 @@
               "minLength": 1,
               "maxLength": 100
             },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            },
             "draft": {
               "type": "string",
               "maxLength": 2000
@@ -1925,6 +1939,11 @@
                 "type": "object",
                 "properties": {
                   "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "productId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 100

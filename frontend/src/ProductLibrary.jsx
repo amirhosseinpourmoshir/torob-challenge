@@ -30,7 +30,8 @@ export default function ProductLibrary({ children, shops, origin, onToggleShop, 
   async function request(path, method = 'GET', data, signal) {
     const timeout = AbortSignal.timeout(15000)
     const response = await fetch(`/api/agent/${path}`, { method, signal: signal ? AbortSignal.any([signal, timeout]) : timeout, headers: { 'Content-Type': 'application/json', ...(method !== 'GET' ? { 'X-CSRFToken': csrf.current } : {}) }, ...(data ? { body: JSON.stringify(data) } : {}) })
-    const result = await response.json()
+    let result
+    try { result = await response.json() } catch { throw new Error('دریافت اطلاعات این بخش کامل نشد؛ دوباره امتحان کن.') }
     if (!response.ok) throw new Error(result.error || 'دریافت اطلاعات کامل نشد؛ دوباره امتحان کن.')
     return result
   }
@@ -98,7 +99,7 @@ export default function ProductLibrary({ children, shops, origin, onToggleShop, 
   }, [panel?.type, revision])
   function chooseShop(shop) { setPanel(null); onChooseShop?.(shop) }
   function action(event) { if (event.type === 'request_shop_contact') { request(`shops/${encodeURIComponent(event.payload.shopId)}/inquiry/`, 'POST', { product_id: panel?.product?.id }).then(data => setSheet(previous => ({ ...previous, inquiry: data.contact }))).catch(e => onToast?.(e.message)); return }; if (event.type === 'select_shop') { const shop = sheet?.map_shops.find(row => row.id === event.payload.shopId); if (shop) chooseShop(shop) } }
-  const value = { savedProducts, pendingSaves, toggleSaved, openProduct, openSellers: product => openProduct(product, 'stores'), openSimilar: product => openProduct(product, 'similar'), compare, addCompare, savedShops: shops, toggleSavedShop: onToggleShop, showSavedShop: shop => { setSavedDropdownOpen(false); chooseShop(shop) }, clearComparison: () => setCompare([]), invalidateProductCache, openSavedProducts, savedDropdownOpen, closeSavedProducts: () => setSavedDropdownOpen(false), showProductOnMap, mappingProduct, waitForFocus: () => focusPending.current }
+  const value = { savedProducts, pendingSaves, toggleSaved, openProduct, openShop, openSellers: product => openProduct(product, 'stores'), openSimilar: product => openProduct(product, 'similar'), compare, addCompare, savedShops: shops, toggleSavedShop: onToggleShop, showSavedShop: shop => { setSavedDropdownOpen(false); chooseShop(shop) }, clearComparison: () => setCompare([]), invalidateProductCache, openSavedProducts, savedDropdownOpen, closeSavedProducts: () => setSavedDropdownOpen(false), showProductOnMap, mappingProduct, waitForFocus: () => focusPending.current }
   const titles = { compare: 'انتخاب‌ها، کنار هم', product: 'یک قدم نزدیک‌تر به انتخابت', shop: 'ویترین فروشگاه، همین‌جا' }
   const activeProduct = sheet?.product || panel?.product
   return <ShoppingContext.Provider value={value}>{children}{compare.length > 0 && <div className="shopping-compare-tray" role="region" aria-label="فهرست مقایسه"><span><GitCompareArrows size={19}/>{compare.length.toLocaleString('fa-IR')} انتخاب برای مقایسه</span><button disabled={compare.length < 2} onClick={showComparison}>مقایسه کن<ArrowLeft size={15}/></button><button className="compare-clear" aria-label="پاک کردن فهرست مقایسه" onClick={() => setCompare([])}><Trash2 size={16}/></button></div>}<AgentDialog open={!!panel} onClose={() => setPanel(null)} title={titles[panel?.type] || ''} className="shopping-sheet">

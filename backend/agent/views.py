@@ -15,12 +15,38 @@ from catalog.map_views import BOUNDS
 
 
 def turn_data(turn):
-    return {'id': str(turn.pk), 'request_id': str(turn.request_id), 'text': turn.text, 'action': turn.action, 'status': turn.status, 'events': turn.events[-15:], 'response': turn.response, 'error': turn.error, 'created_at': turn.created_at.isoformat()}
+    from .lifecycle import deadline
+    return {'id': str(turn.pk), 'request_id': str(turn.request_id), 'text': turn.text, 'action': turn.action, 'status': turn.status, 'events': turn.events[-15:], 'response': turn.response, 'error': turn.error, 'created_at': turn.created_at.isoformat(), 'deadline_at': deadline(turn).isoformat()}
 
 
 def conversation_data(conversation, request):
+    from .lifecycle import expire_turns
+    from django.conf import settings
+    expire_turns(conversation.turns.all())
     turns = list(conversation.turns.order_by('-created_at')[:20])[::-1]
-    return {'id': str(conversation.pk), 'turns': [turn_data(turn) for turn in turns], 'csrf_token': get_token(request), 'worker_online': WorkerHeartbeat.objects.filter(seen_at__gte=timezone.now() - timedelta(seconds=40)).exists()}
+    return {'id': str(conversation.pk), 'turns': [turn_data(turn) for turn in turns], 'timeout_seconds': settings.AGENT_TURN_TIMEOUT_SECONDS, 'csrf_token': get_token(request), 'worker_online': WorkerHeartbeat.objects.filter(seen_at__gte=timezone.now() - timedelta(seconds=40)).exists()}
+
+
+@require_POST
+def stop_conversation(request, conversation_id):
+    try:
+        data = body(request)
+        request_id = str(uuid.UUID(str(data['request_id']))) if data.get('request_id') else None
+        with transaction.atomic():
+            conversation = Conversation.objects.select_for_update().get(pk=conversation_id, owner_key=owner(request))
+            if request_id:
+                cancelled = conversation.state.get('cancelled_requests', [])
+                conversation.state = {**conversation.state, 'cancelled_requests': [*cancelled[-9:], request_id]}
+                conversation.save(update_fields=['state', 'updated_at'])
+            pending = conversation.turns.filter(status__in=['queued', 'running'])
+            if request_id:
+                pending = pending.filter(request_id=request_id)
+            pending.update(status='cancelled', error='', checkpoint={}, lease_until=None, updated_at=timezone.now())
+        return private_response({**conversation_data(conversation, request), 'status': 'cancelled'})
+    except Conversation.DoesNotExist:
+        return private_response({'error': 'گفتگو پیدا نشد.'}, 404)
+    except (ValueError, TypeError):
+        return private_response({'error': 'درخواست توقف کامل نرسید.'}, 400)
 
 
 def private_response(value, status=200):
@@ -106,6 +132,8 @@ def focus_shop(request, conversation_id):
 @require_POST
 def create_turn(request, conversation_id):
     key = owner(request)
+    from .lifecycle import expire_turns
+    expire_turns(AgentTurn.objects.filter(conversation__owner_key=key))
     try:
         data = body(request)
         text = data.get('text', '')
@@ -117,6 +145,9 @@ def create_turn(request, conversation_id):
             existing = conversation.turns.filter(request_id=request_id).first()
             if existing:
                 return private_response(turn_data(existing))
+            if str(request_id) in conversation.state.get('cancelled_requests', []):
+                turn = AgentTurn.objects.create(conversation=conversation, request_id=request_id, text=text.strip(), status='cancelled')
+                return private_response(turn_data(turn), 202)
             if conversation.turns.filter(status__in=['queued', 'running']).exists():
                 return private_response({'error': 'هنوز دارم پیام قبلیت رو بررسی می‌کنم.'}, 409)
             if AgentTurn.objects.filter(conversation__owner_key=key, created_at__gte=timezone.now() - timedelta(hours=1)).count() >= 40:
@@ -128,8 +159,12 @@ def create_turn(request, conversation_id):
                 raise ValueError('یه جمله بنویس تا شروع کنیم.')
             address = SavedAddress.objects.filter(owner_key=key, is_active=True).first()
             context = {'origin': {'latitude': address.latitude, 'longitude': address.longitude, 'label': address.label} if address else None, 'time': time_context(), 'preferences': dict(conversation.state.get('preferences', {})), 'selected_shop_id': conversation.state.get('selected_shop_id')}
+            context.update({key: conversation.state.get(key) for key in ('shopping_query', 'price_range')})
+            context['clarification_count'] = conversation.turns.filter(action__type='clarification_answer', status='done').count()
             if action.get('type') == 'set_budget':
                 context['preferences']['max_price'] = action['payload']['amount']
+                conversation.state = {**conversation.state, 'preferences': context['preferences'], 'evidence': {}}
+                conversation.save(update_fields=['state', 'updated_at'])
             if action.get('type') == 'filter_credit':
                 context['preferences']['credit_only'] = True
             turn = AgentTurn.objects.create(conversation=conversation, request_id=request_id, text=text.strip(), action=action, context=context)
@@ -142,7 +177,10 @@ def create_turn(request, conversation_id):
 
 @require_GET
 def turn_status(request, turn_id):
-    turn = AgentTurn.objects.filter(pk=turn_id, conversation__owner_key=owner(request)).first()
+    from .lifecycle import expire_turns
+    queryset = AgentTurn.objects.filter(pk=turn_id, conversation__owner_key=owner(request))
+    expire_turns(queryset)
+    turn = queryset.first()
     return private_response(turn_data(turn)) if turn else private_response({'error': 'این پیام پیدا نشد.'}, 404)
 
 

@@ -2,10 +2,17 @@ import copy
 import os
 import re
 import socket
+import subprocess
+import sys
+import time
 from datetime import timedelta
 from django.db import transaction, close_old_connections
 from django.utils import timezone
 from .models import AgentTurn, Conversation, KnowledgeJob, LocalizedTerm, WorkerHeartbeat
+
+
+class TurnTimedOut(Exception):
+    pass
 
 
 class TurnCancelled(Exception):
@@ -13,10 +20,15 @@ class TurnCancelled(Exception):
 
 
 def heartbeat():
+    if os.getenv('AGENT_CHILD') == '1':
+        return
     WorkerHeartbeat.objects.update_or_create(pk=f'{socket.gethostname()}-{os.getpid()}', defaults={'seen_at': timezone.now()})
 
 
 def claim(model):
+    if model is AgentTurn:
+        from .lifecycle import expire_turns
+        expire_turns(AgentTurn.objects.all())
     with transaction.atomic():
         expired = model.objects.select_for_update(skip_locked=True).filter(status='running', lease_until__lt=timezone.now()).first()
         if expired:
@@ -51,11 +63,14 @@ def execute_turn(turn):
         state['messages'] = state['messages'][starts[-4]:]
     events = list(turn.events)
     def notify(name, label, status, duration_ms=None):
+        from .lifecycle import deadline
+        if timezone.now() >= deadline(turn):
+            raise TurnTimedOut()
         event = {'id': f'{name}-{len(events)}', 'name': name, 'label': label, 'status': status}
         if duration_ms is not None:
             event['durationMs'] = duration_ms
         events.append(event)
-        if not AgentTurn.objects.filter(pk=turn.pk).update(events=events[-30:], lease_until=timezone.now() + timedelta(minutes=3)):
+        if not AgentTurn.objects.filter(pk=turn.pk, status='running').update(events=events[-30:], lease_until=timezone.now() + timedelta(minutes=3)):
             raise TurnCancelled()
         heartbeat()
     try:
@@ -73,22 +88,25 @@ def execute_turn(turn):
                 for update in chunk.values():
                     if isinstance(update, dict):
                         state.update(update)
-                AgentTurn.objects.filter(pk=turn.pk).update(checkpoint=state, model=state.get('model', ''), usage=state.get('usage', {}), lease_until=timezone.now() + timedelta(minutes=3))
+                if not AgentTurn.objects.filter(pk=turn.pk, status='running').update(checkpoint=state, model=state.get('model', ''), usage=state.get('usage', {}), lease_until=timezone.now() + timedelta(minutes=3)):
+                    raise TurnCancelled()
                 heartbeat()
-        with transaction.atomic():
-            conversation = Conversation.objects.select_for_update().get(pk=conversation.pk)
-            conversation.state = {'messages': state['messages'], 'evidence': state.get('evidence', {}), 'preferences': state['context'].get('preferences', {}), 'selected_shop_id': conversation.state.get('selected_shop_id') if conversation.state.get('selected_shop_id') != turn.context.get('selected_shop_id') else state['context'].get('selected_shop_id')}
-            conversation.save(update_fields=['state', 'updated_at'])
-            AgentTurn.objects.filter(pk=turn.pk).update(status='done', response=state['response'], error='', checkpoint={}, lease_until=None, updated_at=timezone.now())
+        from .lifecycle import finish
+        finish(turn.pk, state)
     except (TurnCancelled, Conversation.DoesNotExist):
         return
+    except TurnTimedOut:
+        from .lifecycle import fail_or_complete
+        fail_or_complete(turn.pk, 'مهلت دریافت پاسخ تمام شد؛ دوباره امتحان کن.')
     except ProviderError as error:
-        AgentTurn.objects.filter(pk=turn.pk).update(status='failed', error=str(error), lease_until=None, updated_at=timezone.now())
+        from .lifecycle import fail_or_complete
+        fail_or_complete(turn.pk, str(error))
     except Exception:
-        # Never serialize provider exceptions, request headers or internal prompts.
         import logging
         logging.getLogger(__name__).error('Agent turn failed: %s', turn.pk)
-        AgentTurn.objects.filter(pk=turn.pk).update(status='failed', error='این بار نتیجه کامل نرسید؛ دوباره امتحان کنیم؟', lease_until=None, updated_at=timezone.now())
+        from .lifecycle import fail_or_complete
+        fail_or_complete(turn.pk, 'این بار نتیجه کامل نرسید؛ دوباره امتحان کنیم؟')
+
 
 
 def execute_knowledge(job):
@@ -120,7 +138,30 @@ def work_once():
     close_old_connections(); heartbeat()
     turn = claim(AgentTurn)
     if turn:
-        execute_turn(turn)
+        from .lifecycle import deadline, fail_or_complete
+        # A dedicated child lets Stop interrupt even a blocked network read.
+        process = subprocess.Popen([sys.executable, 'manage.py', 'agent_worker', '--turn', str(turn.pk)], env={**os.environ, 'AGENT_CHILD': '1'})
+        last_heartbeat = time.monotonic()
+        try:
+            while process.poll() is None:
+                if time.monotonic() - last_heartbeat >= 10:
+                    heartbeat(); last_heartbeat = time.monotonic()
+                status = AgentTurn.objects.filter(pk=turn.pk).values_list('status', flat=True).first()
+                if status != 'running' or timezone.now() >= deadline(turn):
+                    process.terminate()
+                    try:
+                        process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        process.kill(); process.wait()
+                    if status == 'running':
+                        fail_or_complete(turn.pk, 'مهلت دریافت پاسخ تمام شد؛ دوباره امتحان کن.')
+                    break
+                time.sleep(.5)
+            if AgentTurn.objects.filter(pk=turn.pk, status='running').exists():
+                fail_or_complete(turn.pk, 'اجرای پاسخ متوقف شد؛ دوباره امتحان کن.')
+        finally:
+            if process.poll() is None:
+                process.terminate(); process.wait(timeout=3)
         return True
     job = claim(KnowledgeJob)
     if job:

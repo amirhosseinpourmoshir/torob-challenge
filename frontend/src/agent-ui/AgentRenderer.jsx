@@ -8,6 +8,7 @@ import * as Charts from './charts.jsx'
 import { ActionButton, EmptyCard, ErrorCard, LoadingCard, SourceNote } from './primitives.jsx'
 import { validateWidget } from './contracts.js'
 import './agent-ui.css'
+import { interactionTypes, useInteraction } from './InteractionCoordinator.jsx'
 
 function ClarificationWidget({ presentation = 'inline', autoOpenPopup = false, answered = false, onAction, ...props }) {
   const [open, setOpen] = useState(presentation === 'popup' && autoOpenPopup && !answered)
@@ -32,10 +33,14 @@ class WidgetBoundary extends Component {
   render() { return this.state.error ? <ErrorCard message="این کارت کامل نرسیده؛ می‌تونیم دوباره امتحان کنیم." onRetry={() => this.setState({ error: false })}/> : this.props.children }
 }
 export function AgentWidget({ widget, onAction, autoOpenPopups = false, answeredWidgetIds = [] }) {
+  const interaction = useInteraction()
   const validation = validateWidget(widget)
   if (!validation.valid) return <ErrorCard message={validation.error}/>
+  if (interaction && interactionTypes.has(widget.type) && interaction.activeId !== widget.id && !answeredWidgetIds.includes(widget.id) && !(widget.type === 'contact' && widget.props?.draft)) {
+    return <div className="au-deferred-control"><span>{widget.type === 'budget' ? 'انتخاب بودجه' : widget.type === 'contact' ? 'استعلام فروشگاه' : 'انتخاب مرحلهٔ دیگر'}</span><button disabled={interaction.busy} onClick={() => interaction.activate(widget.id)}>باز کردن این مرحله</button></div>
+  }
   const View = widgetRegistry[widget.type]
-  return <WidgetBoundary key={`${widget.id}-${widget.type}`}><View {...widget.props} {...(widget.type === 'clarification' ? { autoOpenPopup: autoOpenPopups, answered: answeredWidgetIds.includes(widget.id) } : {})} onAction={action => onAction?.({ ...action, widgetId: widget.id })}/></WidgetBoundary>
+  return <WidgetBoundary key={`${widget.id}-${widget.type}`}><View {...widget.props} {...(widget.type === 'budget' ? { persistKey: widget.id } : {})} {...(widget.type === 'clarification' ? { autoOpenPopup: autoOpenPopups, answered: answeredWidgetIds.includes(widget.id) } : {})} onAction={action => onAction?.({ ...action, widgetId: widget.id })}/></WidgetBoundary>
 }
 export function AgentRenderer({ widgets = [], onAction, autoOpenPopups = false, answeredWidgetIds = [] }) { return <div className="agent-ui au-renderer" dir="rtl">{Array.isArray(widgets) ? widgets.slice(0, 20).map((widget, index) => <AgentWidget key={widget?.id || index} widget={widget} onAction={onAction} autoOpenPopups={autoOpenPopups} answeredWidgetIds={answeredWidgetIds}/>) : <ErrorCard message="پاسخ تصویری کامل نرسیده."/>}</div> }
 export function AgentMessage({ text, widgets = [], onAction }) { return <div className="agent-ui au-agent-message" dir="rtl">{text && <p>{text}</p>}<AgentRenderer widgets={widgets} onAction={onAction}/></div> }

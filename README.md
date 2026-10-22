@@ -80,6 +80,8 @@ docker compose run --build --rm --no-deps frontend npm run build
 
 ## ساختار
 
+برای انتخاب پلن کم‌هزینهٔ لیارا، [راهنمای میزبانی](docs/hosting.md) را ببینید.
+
 - `backend/catalog`: ورود داده، مدل‌های محصول/فروشگاه و جستجوی نقشه.
 - `backend/agent`: گردش LangGraph، ابزارها، قواعد مشترک جستجو، کیفیت قیمت، ساخت پاسخ و ذخیره‌های نشست.
 - `backend/core`: آدرس، تنظیمات اتصال و پنل مدیر.

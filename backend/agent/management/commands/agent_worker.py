@@ -8,8 +8,16 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--once', action='store_true')
+        parser.add_argument('--turn')
 
     def handle(self, *args, **options):
+        if options.get('turn'):
+            from agent.models import AgentTurn
+            from agent.worker import execute_turn
+            turn = AgentTurn.objects.filter(pk=options['turn'], status='running').first()
+            if turn:
+                execute_turn(turn)
+            return
         if options['once']:
             work_once()
             return

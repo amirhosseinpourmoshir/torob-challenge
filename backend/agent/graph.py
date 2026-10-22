@@ -81,6 +81,8 @@ def build_graph(turn_id, notify, provider=None):
                     if not list(Draft202012Validator(TOOL_DEFINITIONS[name][1]).iter_errors(args)):
                         context.setdefault('preferences', {}).update({k: v for k, v in args.items() if k in FILTERS})
                 result = execute_tool(name, args, context)
+                if name in ('search_products', 'compare_products', 'find_sellers', 'store_products', 'product_details', 'nearby_shops', 'prepare_contact', 'get_price_range'):
+                    context['result_kind'] = name
                 if name in ('store_details', 'store_products') and not result.get('error'):
                     context['selected_shop_id'] = args.get('shop_id') or context.get('selected_shop_id')
                     context['catalog_categories'] = [row['product__category_id'] for row in result.get('catalog', {}).get('categories', []) if row.get('product__category_id')]
@@ -107,7 +109,13 @@ def build_graph(turn_id, notify, provider=None):
                     return {k: bounded(v, depth + 1) for k, v in list(value.items())[:16]}
                 return value
             history.append({'role': 'tool', 'tool_call_id': call.get('id', f'tool-{count}'), 'content': json.dumps(bounded(result), ensure_ascii=False)})
-        return {'messages': history, 'context': context, 'evidence': evidence, 'pending': [], 'tool_count': count, 'discovered_products': products, 'discovered_shops': shops}
+        update = {'messages': history, 'context': context, 'evidence': evidence, 'pending': [], 'tool_count': count, 'discovered_products': products, 'discovered_shops': shops}
+        from .outcomes import found_answer
+        answer = found_answer(update)
+        if answer:
+            update['answer'] = answer
+            update['messages'] = [*history, {'role': 'assistant', 'content': json.dumps(answer, ensure_ascii=False)}]
+        return update
 
     def render(state):
         notify('render', 'انتخاب‌ها آماده‌ان', 'done')
@@ -117,5 +125,5 @@ def build_graph(turn_id, notify, provider=None):
     builder.add_node('reason', reason); builder.add_node('tools', tools); builder.add_node('render', render)
     builder.add_conditional_edges(START, lambda s: 'render' if s.get('answer') else 'tools' if s.get('pending') else 'reason')
     builder.add_conditional_edges('reason', lambda s: 'tools' if s.get('pending') else 'render')
-    builder.add_edge('tools', 'reason'); builder.add_edge('render', END)
+    builder.add_conditional_edges('tools', lambda s: 'render' if s.get('answer') else 'reason'); builder.add_edge('render', END)
     return builder.compile()
