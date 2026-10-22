@@ -5,12 +5,12 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { RefreshCw, WifiOff } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './map-layout.css'
+import RouteArc from './RouteArc.jsx'
 import { shopTypes } from './shopTypes.jsx'
 
 setWorkerUrl(workerUrl)
 export const TEHRAN_BOUNDS = [[51.08, 35.53], [51.65, 35.84]]
 const HOME = { center: [51.412, 35.713], zoom: 14, pitch: 35, bearing: -12 }
-const emptyRoute = { type: 'FeatureCollection', features: [] }
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 // Mixed-language names are omitted instead of falling back to Latin text.
@@ -108,7 +108,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
         }
         // Required source credits are rendered below in Persian with original links.
         for (const source of Object.values(style.sources)) if ('attribution' in source) source.attribution = ''
-        m = new Map({ container: container.current, style, ...HOME, ...(pickMode ? { center: initialPoint.current || HOME.center, zoom: 15.5, pitch: 0, bearing: 0 } : {}), maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران' } })
+        m = new Map({ container: container.current, style, ...HOME, ...(pickMode ? { center: initialPoint.current || HOME.center, zoom: 15.5, pitch: 0, bearing: 0 } : {}), maxBounds: TEHRAN_BOUNDS, minZoom: 11.5, maxZoom: 18.5, attributionControl: false, scrollZoom: false, cooperativeGestures: true, canvasContextAttributes: { antialias: true }, locale: { 'Map.Title': 'نقشه تهران', 'CooperativeGesturesHandler.WindowsHelpText': 'برای زوم از دکمه‌های نقشه استفاده کن', 'CooperativeGesturesHandler.MacHelpText': 'برای زوم از دکمه‌های نقشه استفاده کن', 'CooperativeGesturesHandler.MobileHelpText': 'نقشه را با دو انگشت جابه‌جا کن' } })
         instance.current = m
         setMap(m)
         const publishViewport = () => {
@@ -127,9 +127,6 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
           if (disposed) return
           const source = Object.entries(style.sources).find(([, value]) => value.type === 'vector')?.[0]
           if (source && !m.getLayer('tehran-buildings-3d')) m.addLayer({ id: 'tehran-buildings-3d', type: 'fill-extrusion', source, 'source-layer': 'building', minzoom: 14, paint: { 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': .65 } }, style.layers.find(layer => layer.type === 'symbol')?.id)
-          m.addSource('guide-line', { type: 'geojson', data: emptyRoute })
-          m.addLayer({ id: 'guide-line-outline', type: 'line', source: 'guide-line', paint: { 'line-color': '#fffaf4', 'line-width': 7 } })
-          m.addLayer({ id: 'guide-line', type: 'line', source: 'guide-line', paint: { 'line-color': '#e7463e', 'line-width': 3, 'line-dasharray': [2, 2] } })
           applyPalette(m, themeRef.current)
           updateScale(); publishViewport(); setLoaded(true); setError('')
         })
@@ -155,11 +152,6 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
     return () => { disposed = true; controller.abort(); clearTimeout(timeout); observer?.disconnect(); m?.remove(); instance.current = null }
   }, [revision])
   useEffect(() => { if (map && loaded) applyPalette(map, theme) }, [theme, map, loaded])
-  useEffect(() => {
-    if (!map || !loaded) return
-    const shop = activeShop || shops.find(s => s.id === selected)
-    map.getSource('guide-line')?.setData(route && shop && origin ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [origin, shop.coordinates] } } : emptyRoute)
-  }, [route, selected, loaded, map, activeShop, origin])
   useEffect(() => { if (map && loaded && origin && !pickMode) map.flyTo({ center: origin, zoom: 14.8, duration: reducedMotion() ? 0 : 700 }) }, [origin, map, loaded, pickMode])
   const occupied = []
   const labels = []
@@ -182,6 +174,7 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
   useEffect(() => { onVisibleCount?.(markers.length) }, [markers.length, onVisibleCount])
   return <>
     <div ref={container} className="geographic-map" role="region" aria-label="نقشه تعاملی تهران"/>
+    {map && loaded && route && origin && (activeShop || shops.find(s => s.id === selected)) && <RouteArc map={map} origin={origin} destination={(activeShop || shops.find(s => s.id === selected)).coordinates} theme={theme}/>}
     {markers.map(shop => { const type = shopTypes[shop.category] || shopTypes.other; const Icon = type.icon; return <MapMarker key={shop.id} map={map} coordinates={shop.coordinates} className={`live-shop-marker ${selected === shop.id ? 'is-active' : ''} ${zoom >= 16.2 || selected === shop.id ? 'with-name' : ''}`}><button style={{ '--shop-color': type.color }} onClick={() => onSelect(shop.id)} aria-label={`انتخاب فروشگاه ${shop.name}`} aria-pressed={selected === shop.id} title={`${shop.name} · ${shop.type}`}><span className="live-marker-icon"><Icon size={17} strokeWidth={1.9}/></span>{(zoom >= 16.2 || selected === shop.id) && namedIds.has(shop.id) && <span className="live-marker-name">{shop.name}</span>}</button></MapMarker> })}
     {map && !pickMode && origin && <MapMarker map={map} coordinates={origin} className="geo-start-marker"><span>آدرس انتخابی تو</span><i/></MapMarker>}
     <div className="persian-map-scale"><span/>{scale}</div>
