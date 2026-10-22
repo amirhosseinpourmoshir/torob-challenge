@@ -32,7 +32,6 @@ def claim(model):
 
 
 def execute_turn(turn):
-    from .graph import build_graph
     from .provider import ProviderError
     heartbeat()
     conversation = turn.conversation
@@ -55,13 +54,22 @@ def execute_turn(turn):
         AgentTurn.objects.filter(pk=turn.pk).update(events=events[-30:], lease_until=timezone.now() + timedelta(minutes=3))
         heartbeat()
     try:
-        graph = build_graph(str(turn.pk), notify)
-        for chunk in graph.stream(state, stream_mode='updates', config={'recursion_limit': 20}):
-            for update in chunk.values():
-                if isinstance(update, dict):
-                    state.update(update)
-            AgentTurn.objects.filter(pk=turn.pk).update(checkpoint=state, model=state.get('model', ''), usage=state.get('usage', {}), lease_until=timezone.now() + timedelta(minutes=3))
-            heartbeat()
+        if turn.action and not state.get('answer') and not state.get('pending'):
+            from .actions import prepare_action
+            prepare_action(state, turn.action, notify)
+        if state.get('answer'):
+            from .presentation import render_response
+            notify('render', 'انتخاب‌ها آماده‌ان', 'done')
+            state['response'] = render_response(state['answer'], state, str(turn.pk))
+        else:
+            from .graph import build_graph
+            graph = build_graph(str(turn.pk), notify)
+            for chunk in graph.stream(state, stream_mode='updates', config={'recursion_limit': 20}):
+                for update in chunk.values():
+                    if isinstance(update, dict):
+                        state.update(update)
+                AgentTurn.objects.filter(pk=turn.pk).update(checkpoint=state, model=state.get('model', ''), usage=state.get('usage', {}), lease_until=timezone.now() + timedelta(minutes=3))
+                heartbeat()
         with transaction.atomic():
             conversation = Conversation.objects.select_for_update().get(pk=conversation.pk)
             conversation.state = {'messages': state['messages'], 'evidence': state.get('evidence', {}), 'preferences': state['context'].get('preferences', {})}

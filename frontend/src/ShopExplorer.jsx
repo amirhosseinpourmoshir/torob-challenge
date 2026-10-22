@@ -93,7 +93,7 @@ const ShopExplorer = forwardRef(function ShopExplorer({ theme, origin, saved, sa
     }, searchImmediately.current ? 0 : 220)
     return cancelSearch
   }, [query, searchOpen, composing, category, savedOnly, savedIds, origin, searchRevision])
-  useImperativeHandle(ref, () => ({ reset, showShops: rows => { if (rows?.length) { setCategory('all'); select(rows[0]) } }, search: value => { search(value); searchBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }))
+  useImperativeHandle(ref, () => ({ reset, showShops: rows => { if (rows?.length) { setCategory('all'); select(rows[0]) } else { setActive(null); setRoute(false) } }, search: value => { search(value); searchBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }))
 
   useEffect(() => {
     if (!view || view.zoom < MIN_ZOOM) { setShops([]); setLoading(false); setError(''); return }

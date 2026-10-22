@@ -100,6 +100,18 @@ class AgentCatalogTests(TestCase):
         self.assertIn('p-main', conversation.state['evidence']['products'])
         self.assertEqual(turn.checkpoint, {})
 
+    def test_product_card_actions_use_catalogue_without_a_model_request(self):
+        product = search_products(self.context, 'هدفون')['products'][0]
+        conversation = Conversation.objects.create(owner_key=uuid.uuid4(), state={'evidence': {'products': {'p-main': product}, 'shops': {}}, 'preferences': {}})
+        turn = AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), text='فروشگاه‌های انتخابم', action={'type': 'find_sellers', 'payload': {'productId': 'p-main'}}, context=self.context, status='running')
+        with patch('agent.graph.chat', side_effect=AssertionError('card selection must not call the model')):
+            execute_turn(turn)
+        turn.refresh_from_db()
+        self.assertEqual(turn.status, 'done')
+        self.assertEqual(turn.response['widgets'][0]['type'], 'offers')
+        self.assertEqual(len(turn.response['widgets'][0]['props']['offers']), 4)
+        self.assertEqual(turn.usage, {})
+
     def test_recovery_resumes_completed_model_step_without_paying_for_it_again(self):
         conversation = Conversation.objects.create(owner_key=uuid.uuid4())
         state = {'messages': [], 'context': self.context, 'evidence': {}, 'answer': {'text': 'نیازت رو بگو.', 'blocks': []}, 'pending': [], 'model': 'gpt-6-luna'}
@@ -144,6 +156,26 @@ class AgentApiTests(TestCase):
         response = self.post({'request_id': str(uuid.uuid4()), 'action': {'type': 'set_budget', 'widgetId': 'foreign', 'payload': {'amount': 3000000}}})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(AgentTurn.objects.count(), 0)
+
+    def test_clear_conversation_deletes_history_but_preserves_other_sessions(self):
+        conversation = Conversation.objects.get(pk=self.conversation['id'])
+        AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), status='done', text='گفتگوی قبلی')
+        path = f'/api/agent/conversations/{conversation.pk}/'
+        self.assertEqual(Client().delete(path).status_code, 404)
+        self.assertEqual(self.client.delete(path).status_code, 403)
+        response = self.client.delete(path, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['turns'], [])
+        self.assertNotEqual(response.json()['id'], str(conversation.pk))
+        self.assertFalse(Conversation.objects.filter(pk=conversation.pk).exists())
+        self.assertEqual(AgentTurn.objects.count(), 0)
+
+    def test_action_is_returned_so_history_does_not_render_internal_request_text(self):
+        conversation = Conversation.objects.get(pk=self.conversation['id'])
+        action = {'type': 'find_sellers', 'widgetId': 'card', 'payload': {'productId': 'product_internal'}}
+        AgentTurn.objects.create(conversation=conversation, request_id=uuid.uuid4(), status='done', action=action, text='internal product_internal')
+        response = self.client.get('/api/agent/conversations/').json()
+        self.assertEqual(response['turns'][0]['action'], action)
 
     def test_knowledge_panel_requires_superuser_and_queues_only_one_job(self):
         self.assertEqual(self.client.get('/api/agent/knowledge/').status_code, 403)

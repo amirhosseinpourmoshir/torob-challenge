@@ -9,8 +9,9 @@ import { ActionButton, EmptyCard, ErrorCard, LoadingCard, SourceNote } from './p
 import { validateWidget } from './contracts.js'
 import './agent-ui.css'
 
-function ClarificationWidget({ presentation = 'inline', onAction, ...props }) {
-  const [open, setOpen] = useState(presentation === 'popup')
+function ClarificationWidget({ presentation = 'inline', autoOpenPopup = false, answered = false, onAction, ...props }) {
+  const [open, setOpen] = useState(presentation === 'popup' && autoOpenPopup && !answered)
+  if (answered) return <div className="au-question-answered"><HelpCircle size={15}/><span>انتخابت ثبت شده؛ با هم ادامه دادیم.</span></div>
   if (presentation === 'inline') return <Interactions.ClarificationCard {...props} onAction={onAction}/>
   return <><ActionButton tone="secondary" icon={HelpCircle} onClick={() => setOpen(true)}>یه سؤال کوتاه برای انتخاب بهتر</ActionButton><Interactions.ClarificationPopup {...props} onAction={onAction} open={open} onClose={() => setOpen(false)}/></>
 }
@@ -30,12 +31,12 @@ class WidgetBoundary extends Component {
   static getDerivedStateFromError() { return { error: true } }
   render() { return this.state.error ? <ErrorCard message="این کارت کامل نرسیده؛ می‌تونیم دوباره امتحان کنیم." onRetry={() => this.setState({ error: false })}/> : this.props.children }
 }
-export function AgentWidget({ widget, onAction }) {
+export function AgentWidget({ widget, onAction, autoOpenPopups = false, answeredWidgetIds = [] }) {
   const validation = validateWidget(widget)
   if (!validation.valid) return <ErrorCard message={validation.error}/>
   const View = widgetRegistry[widget.type]
-  return <WidgetBoundary key={`${widget.id}-${widget.type}`}><View {...widget.props} onAction={action => onAction?.({ ...action, widgetId: widget.id })}/></WidgetBoundary>
+  return <WidgetBoundary key={`${widget.id}-${widget.type}`}><View {...widget.props} {...(widget.type === 'clarification' ? { autoOpenPopup: autoOpenPopups, answered: answeredWidgetIds.includes(widget.id) } : {})} onAction={action => onAction?.({ ...action, widgetId: widget.id })}/></WidgetBoundary>
 }
-export function AgentRenderer({ widgets = [], onAction }) { return <div className="agent-ui au-renderer" dir="rtl">{Array.isArray(widgets) ? widgets.slice(0, 20).map((widget, index) => <AgentWidget key={widget?.id || index} widget={widget} onAction={onAction}/>) : <ErrorCard message="پاسخ تصویری کامل نرسیده."/>}</div> }
+export function AgentRenderer({ widgets = [], onAction, autoOpenPopups = false, answeredWidgetIds = [] }) { return <div className="agent-ui au-renderer" dir="rtl">{Array.isArray(widgets) ? widgets.slice(0, 20).map((widget, index) => <AgentWidget key={widget?.id || index} widget={widget} onAction={onAction} autoOpenPopups={autoOpenPopups} answeredWidgetIds={answeredWidgetIds}/>) : <ErrorCard message="پاسخ تصویری کامل نرسیده."/>}</div> }
 export function AgentMessage({ text, widgets = [], onAction }) { return <div className="agent-ui au-agent-message" dir="rtl">{text && <p>{text}</p>}<AgentRenderer widgets={widgets} onAction={onAction}/></div> }
 export default AgentRenderer

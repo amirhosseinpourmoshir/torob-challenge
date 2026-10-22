@@ -13,7 +13,7 @@ from .catalog_tools import time_context
 
 
 def turn_data(turn):
-    return {'id': str(turn.pk), 'request_id': str(turn.request_id), 'text': turn.text, 'status': turn.status, 'events': turn.events[-15:], 'response': turn.response, 'error': turn.error, 'created_at': turn.created_at.isoformat()}
+    return {'id': str(turn.pk), 'request_id': str(turn.request_id), 'text': turn.text, 'action': turn.action, 'status': turn.status, 'events': turn.events[-15:], 'response': turn.response, 'error': turn.error, 'created_at': turn.created_at.isoformat()}
 
 
 def conversation_data(conversation, request):
@@ -34,6 +34,20 @@ def conversations(request):
     if conversation is None:
         conversation = Conversation.objects.create(owner_key=key)
     return private_response(conversation_data(conversation, request))
+
+
+@require_http_methods(['DELETE'])
+def clear_conversation(request, conversation_id):
+    key = owner(request)
+    with transaction.atomic():
+        conversation = Conversation.objects.select_for_update().filter(pk=conversation_id, owner_key=key).first()
+        if not conversation:
+            return private_response({'error': 'گفتگو پیدا نشد.'}, 404)
+        if conversation.turns.filter(status__in=['queued', 'running']).exists():
+            return private_response({'error': 'بعد از دریافت پاسخ، گفتگو رو پاک کن.'}, 409)
+        conversation.delete()
+        fresh = Conversation.objects.create(owner_key=key)
+    return private_response(conversation_data(fresh, request))
 
 
 def action_context(action, conversation):
