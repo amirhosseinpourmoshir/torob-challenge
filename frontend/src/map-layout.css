@@ -34,3 +34,5 @@
 @media(max-height:600px){.workspace:has(.real-agent-chat) .shop-explorer.shop-explorer{overflow-y:auto;position:relative;top:auto}.workspace .shop-explorer.expanded-map{position:fixed;top:8px}.workspace .shop-explorer .shop-map-viewport{flex:none;height:200px}}
 
 @media(min-height:601px) and (max-height:740px){.workspace .shop-explorer .shop-map-viewport,.workspace .shop-explorer.expanded-map .shop-map-viewport{min-height:80px}.workspace .shop-explorer>.map-topbar{padding-block:8px}.workspace .shop-explorer>.shop-detail{margin-block:5px}}
+
+.geographic-map,.live-shop-marker,.geo-start-marker,.persian-map-scale,.persian-map-attribution{font-family:Peyda,Tahoma,sans-serif}.live-marker-name{font-weight:600}.geo-start-marker>span{font-weight:600}

@@ -50,9 +50,10 @@ function applyPalette(map, theme) {
       map.setPaintProperty(id, 'line-color', color)
     }
     if (layer.type === 'symbol' && layer.layout?.['text-field']) {
-      map.setPaintProperty(id, 'text-color', dark ? '#c4cbbc' : '#2c444b')
-      map.setPaintProperty(id, 'text-halo-color', dark ? '#1a292e' : '#fcfcf5')
-      map.setPaintProperty(id, 'text-halo-width', 1.5)
+      map.setPaintProperty(id, 'text-color', dark ? '#f0eee0' : '#203f43')
+      map.setPaintProperty(id, 'text-halo-color', dark ? '#182a30' : '#fffef7')
+      map.setPaintProperty(id, 'text-halo-width', dark ? 1.6 : 1.8)
+      map.setPaintProperty(id, 'text-halo-blur', .35)
     }
     if (layer.type === 'fill-extrusion') map.setPaintProperty(id, 'fill-extrusion-color', dark ? '#4b5a60' : '#a9b5ad')
   }
@@ -111,9 +112,16 @@ const TehranMap = forwardRef(function TehranMap({ shops = [], highlightedShops =
         if (!response.ok) throw new Error('style-unavailable')
         const style = await response.json()
         if (disposed) return
+        style['font-faces'] = {
+          'Peyda Map Medium': new URL('/fonts/peyda/Peyda-Medium.ttf', window.location.origin).href,
+          'Peyda Map Bold': new URL('/fonts/peyda/Peyda-Bold.ttf', window.location.origin).href,
+        }
         for (const layer of style.layers) {
           if (layer.type === 'symbol' && layer.layout?.['text-field']) {
             layer.layout['text-field'] = persianLabelExpression()
+            layer.layout['text-font'] = [/place|settlement|neigh|suburb/.test(layer.id) ? 'Peyda Map Bold' : 'Peyda Map Medium']
+            layer.layout['text-letter-spacing'] = 0
+            layer.layout['text-size'] = ['interpolate', ['linear'], ['zoom'], 11, 11, 14, 12.5, 17, 15, 19, 17]
             if (/shield|airport|country|state/.test(layer.id)) layer.layout.visibility = 'none'
           }
         }
