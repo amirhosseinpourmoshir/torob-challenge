@@ -1,0 +1,24 @@
+FROM node:24-alpine AS frontend-build
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+ARG VITE_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/positron
+ENV VITE_MAP_STYLE_URL=$VITE_MAP_STYLE_URL
+RUN npm run build
+
+FROM python:3.13-slim@sha256:cf50a4f6ac4f026458b08d5222023d700ac806410dff5e9ca8728fa44f2b850f
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 DJANGO_DEBUG=false WEB_CONCURRENCY=1 WEB_THREADS=4
+RUN apt-get update && apt-get install -y --no-install-recommends nginx supervisor && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY backend/requirements.txt ./
+ARG PIP_INDEX_URL=https://pypi.org/simple
+RUN pip install --no-cache-dir --index-url ${PIP_INDEX_URL} -r requirements.txt && pip check
+COPY backend/ ./
+COPY --from=frontend-build /frontend/dist /srv/frontend
+COPY deploy/liara/nginx.conf /etc/nginx/nginx.conf
+COPY deploy/liara/supervisord.conf /etc/supervisor/torob.conf
+COPY deploy/liara/start.sh /usr/local/bin/torob-start
+RUN chmod +x /usr/local/bin/torob-start
+EXPOSE 8080
+CMD ["sh", "/usr/local/bin/torob-start"]
