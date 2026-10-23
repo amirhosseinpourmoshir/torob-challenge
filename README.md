@@ -16,6 +16,8 @@
 
 [ورود به ترب همراه](https://t-hak-amirhosein.liara.run) · [پنل مدیریت](https://t-hak-amirhosein.liara.run/panel)
 
+[راهنمای تحویل و داوری](docs/handoff.md) · [تاریخچهٔ تغییرات](CHANGELOG.md)
+
 نسخهٔ PaaS با CLI لیارا منتشر شده است. دیتابیس و worker فعال‌اند؛ راهنمای تکرار انتشار در [مستندات CLI](docs/liara-cli.md) آمده است.
 
 ## این پروژه چه کاری انجام می‌دهد؟
@@ -55,7 +57,7 @@
 
 Git و Docker با Compose v2 نصب باشند. در ویندوز، Docker Desktop را در حالت Linux containers اجرا کنید. برای اجرای Docker نیازی به نصب جداگانهٔ Python، Node یا PostgreSQL روی میزبان ندارید.
 
-مخزن خصوصی است؛ حساب GitHub شما باید دسترسی داشته باشد. با Git Credential Manager یا روش احراز هویت GitHub وارد شوید؛ کلید API پروژه را در URL کلون قرار ندهید.
+سورس پروژه به‌صورت عمومی در GitHub قابل دریافت است؛ برای clone نیازی به دریافت کلید API یا حساب مدیریت نسخهٔ آنلاین ندارید.
 
 ```powershell
 git clone https://github.com/amirhosseinpourmoshir/torob-challenge.git
@@ -221,4 +223,4 @@ docker compose run --build --rm --no-deps frontend npm run build
 | [میزبانی](docs/hosting.md) | پیشنهاد اقتصادی لیارا و محدودیت ظرفیت |
 | [همکاری](CONTRIBUTING.md) | بررسی، کامیت فارسی و روال Git |
 
-تنظیمات پروداکشن آماده‌اند؛ push به GitHub به معنی انتشار روی سرور واقعی نیست. مخزن، فایل محیطی، دیتاست خام، دیتابیس و کلیدها را شامل نمی‌شود.
+نسخهٔ آنلاین روی لیارا اجرا می‌شود. تغییر سورس و push بعدی به GitHub به‌تنهایی نسخهٔ آنلاین را به‌روزرسانی نمی‌کند؛ انتشار با CLI جداگانه انجام می‌شود. مخزن، فایل محیطی، دیتاست خام، دیتابیس و کلیدها را شامل نمی‌شود.
